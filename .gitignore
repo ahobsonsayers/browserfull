@@ -23,8 +23,9 @@ go.work
 vendor/
 
 # Ignore certain directories
-build/
 bin/
+build/
+docs/superpowers
 scratch/
 
 # Ignore certain files
