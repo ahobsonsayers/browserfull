@@ -42,6 +42,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Start the dashboard
+	err = ab.StartDashboard()
+	if err != nil {
+		log.Fatalf("failed to start dashboard: %v", err)
+	}
+
 	server := api.NewServer(ab, cfg)
 	handler := api.HandlerFromMux(server, router)
 

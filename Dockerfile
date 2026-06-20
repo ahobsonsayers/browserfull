@@ -96,7 +96,9 @@ COPY --from=cloakbrowser --chown=browser:browser /chromium/ /opt/cloakbrowser/
 COPY --from=builder --chown=browser:browser /app/bin/browserfull /usr/local/bin/browserfull
 
 USER browser
-WORKDIR "$HOME"
+WORKDIR "$BROWSERFULL_DATA_DIR"
+
+EXPOSE 8080
 
 ENTRYPOINT ["tini", "--"]
 CMD ["/usr/local/bin/browserfull"]

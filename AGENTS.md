@@ -29,6 +29,7 @@ Available tasks:
 - **Line length limit**: 120 chars (revive `line-length-limit`).
 - **Max function statements**: 50 (revive `function-length`, statements only).
 - **Exported naming**: revive `exported` is enabled only for types/consts/vars/methods — function names must not stutter (e.g. `proxy.CDP`, not `proxy.ProxyCDP`).
+- **Error handling**: Never use inline `if err := ...; err != nil` — always assign the error to a variable first, then check it on the next line.
 
 ## Architecture
 
