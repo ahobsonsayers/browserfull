@@ -81,3 +81,32 @@ func TestLoad_InvalidPort(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, cfg)
 }
+
+func TestLoad_AllowedOrigins(t *testing.T) {
+	t.Run("unset defaults to empty", func(t *testing.T) {
+		os.Unsetenv("BROWSERFUL_ALLOWED_ORIGINS")
+
+		cfg, err := Load()
+		require.NoError(t, err)
+		require.NotNil(t, cfg)
+		assert.Empty(t, cfg.AllowedOrigins)
+	})
+
+	t.Run("single value", func(t *testing.T) {
+		t.Setenv("BROWSERFUL_ALLOWED_ORIGINS", "0.0.0.0")
+
+		cfg, err := Load()
+		require.NoError(t, err)
+		require.NotNil(t, cfg)
+		assert.Equal(t, []string{"0.0.0.0"}, cfg.AllowedOrigins)
+	})
+
+	t.Run("comma separated", func(t *testing.T) {
+		t.Setenv("BROWSERFUL_ALLOWED_ORIGINS", "127.0.0.1,10.0.0.5")
+
+		cfg, err := Load()
+		require.NoError(t, err)
+		require.NotNil(t, cfg)
+		assert.Equal(t, []string{"127.0.0.1", "10.0.0.5"}, cfg.AllowedOrigins)
+	})
+}

@@ -11,8 +11,9 @@ import (
 const defaultConfigFileName = "config.json"
 
 type Config struct {
-	Port    uint16 `env:"BROWSERFUL_PORT,default=8080"`
-	DataDir string `env:"BROWSERFUL_DATA_DIR,default=$HOME/.browserful"`
+	Port           uint16   `env:"BROWSERFUL_PORT,default=8080"`
+	DataDir        string   `env:"BROWSERFUL_DATA_DIR,default=$HOME/.browserful"`
+	AllowedOrigins []string `env:"BROWSERFUL_ALLOWED_ORIGINS"`
 }
 
 func Load() (*Config, error) {
