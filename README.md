@@ -2,28 +2,9 @@
 
 A BAAS (browser-as-a-service) server built on [agent-browser](https://agent-browser.dev/) that spins up browsers on demand and exposes their CDP (Chrome DevTools Protocol) WebSocket endpoint.
 
-Connect tools like [browser-use](https://github.com/browser-use/browser-use), [agent-browser](https://agent-browser.dev/), Puppeteer, Playwright, or any CDP client to a browser started via this API
-
-## Features
-
-- **On-demand browser sessions** — Launch a browser with a single HTTP call, get back a live CDP WebSocket.
-- **Named sessions** — Run multiple isolated browser sessions side-by-side, each addressable by name.
-- **CDP proxying** — Browserful upgrades your request to a WebSocket and proxies it straight to the browser's CDP endpoint. Standard CDP clients just work.
+Connect tools like [browser-use](https://github.com/browser-use/browser-use), [agent-browser](https://agent-browser.dev/), Puppeteer, Playwright, or any CDP client to a browser started via this API — yes, even agent-browser itself can connect back to a session Browserful launched.
 
 ## Quick start
-
-### Prerequisites
-
-- Go 1.24.3+
-- [`agent-browser`](https://agent-browser.dev/) on your `$PATH`
-
-### Run locally
-
-```bash
-go run .
-```
-
-Server starts on `0.0.0.0:8080`.
 
 ### Run with Docker
 
@@ -32,45 +13,63 @@ docker build -t browserful .
 docker run --rm -p 8080:8080 browserful
 ```
 
-## Configuration
+### Run locally
 
-Configured via environment variables:
+Prerequisites: Go 1.24.3+ and [`agent-browser`](https://agent-browser.dev/) on your `$PATH`.
 
-| Variable                     | Default             | Description                                                              |
-| ---------------------------- | ------------------- | ------------------------------------------------------------------------ |
-| `BROWSERFUL_PORT`            | `8080`              | HTTP listen port                                                         |
-| `BROWSERFUL_DATA_DIR`        | `$HOME/.browserful` | Session metadata + agent-browser config dir                              |
-| `BROWSERFUL_ALLOWED_ORIGINS` | _none_              | Comma-separated allowed WebSocket origin hostnames; `0.0.0.0` allows all |
+```bash
+go run .
+```
 
-## API
+Server starts on `0.0.0.0:8080`.
 
-### `POST /sessions`
+## Connect to a session
 
-Launch the default browser session. The response is a WebSocket upgrade (HTTP `101`) proxied to the session's CDP endpoint.
-
-### `POST /sessions/{sessionName}`
-
-Launch a named browser session. `sessionName` must match `^[a-zA-Z0-9_-]+$`.
-
-### `DELETE /sessions/{sessionName}`
-
-Close a named browser session. Returns `204` on success.
-
-### `GET /health`
-
-Health check. Returns `200` if the server is up.
-
-## Using the CDP endpoint
-
-Once you `POST` to `/sessions` (or `/sessions/{name}`), the connection upgrades to a WebSocket and is transparently proxied to the underlying browser's CDP URL. Point your CDP client at the Browserful URL you called — no separate CDP discovery step needed.
+Point any CDP-compatible client at a Browserful `/connect` URL. The connection upgrades to a WebSocket and is transparently proxied to the underlying browser's CDP endpoint — no separate launch or CDP-discovery step needed.
 
 ```python
 # Example with browser-use
 from browser_use import BrowserUse
 
-bu = BrowserUse(ws_endpoint="ws://localhost:8080/sessions/my-session")
+bu = BrowserUse(ws_endpoint="ws://localhost:8080/connect/my-session")
 # Browserful launches the browser and hands you its CDP stream
 ```
+
+```bash
+# Example with agent-browser CLI
+agent-browser connect "ws://localhost:8080/connect/my-session"
+agent-browser snapshot
+```
+
+## API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/connect` | Connect to the default session's CDP WebSocket (launches if not running) |
+| `GET` | `/connect/{sessionName}` | Connect to a named session's CDP WebSocket (launches if not running) |
+| `DELETE` | `/sessions/{sessionName}` | Close a session |
+| `GET` | `/health` | Health check |
+
+`sessionName` must match `^[a-zA-Z0-9_-]+$`.
+
+## Configuration
+
+Configured via environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BROWSERFUL_PORT` | `8080` | HTTP listen port |
+| `BROWSERFUL_DATA_DIR` | `$HOME/.browserful` | Session metadata + agent-browser config dir |
+| `BROWSERFUL_ALLOWED_ORIGINS` | _none_ | Comma-separated allowed WebSocket origin hostnames; `0.0.0.0` allows all |
+
+## How it works
+
+```
+Your CDP client ──WS──▶ Browserful ──WS──▶ agent-browser ──▶ Chrome/Chromium
+                     (HTTP server)         (manages browser)   (CDP target)
+```
+
+Browserful is a thin HTTP + WebSocket layer over `agent-browser`. When you hit `/connect/{name}`, it asks `agent-browser` to launch a browser, then proxies your WebSocket connection straight through to that browser's CDP endpoint. Closing a session calls `agent-browser close` under the hood.
 
 ## Development
 
@@ -87,15 +86,6 @@ task generate     # regenerate api/api.gen.go from openapi.yaml
 task build        # build binary to ./bin/
 task build:docker # build docker image
 ```
-
-## How it works
-
-```
-Your CDP client ──WS──▶ Browserful ──WS──▶ agent-browser ──▶ Chrome/Chromium
-                     (HTTP server)         (manages browser)   (CDP target)
-```
-
-Browserful is a thin HTTP + WebSocket layer over `agent-browser`. When you hit `/sessions`, it asks `agent-browser` to launch a browser, then proxies your WebSocket connection straight through to that browser's CDP endpoint. Closing a session calls `agent-browser close` under the hood.
 
 ## Acknowledgements
 

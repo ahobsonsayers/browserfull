@@ -36,7 +36,7 @@ internal/proxy         — WebSocket reverse proxy to a CDP URL (gorilla/websock
 api/                   — oapi-codegen generated HTTP server (chi) + hand-written handlers
 api/api.gen.go         — GENERATED. Do not edit. Regenerate with `task generate`.
 api/server.go          — Strict server + ServerOverrides wrapper holding agentBrowser + allowedOrigins
-api/sessions.go        — Launch/close session handlers; proxies CDP via internal/proxy
+api/sessions.go        — Connect (launch + CDP proxy) and close session handlers
 api/health.go          — Health check handler
 api/middleware/        — OpenAPI request validation + structured request logging (httplog, includes recoverer)
 ```
@@ -48,6 +48,12 @@ api/middleware/        — OpenAPI request validation + structured request loggi
 - Generated output: `api/api.gen.go`. Regenerate after editing `openapi.yaml`: `task generate`.
 - `api/api.gen.go` embeds the OpenAPI spec and exposes `api.GetSpec()` (returns `*openapi3.T`). **Use `GetSpec()`, not the deprecated `GetSwagger()`** (the latter is retained only for backwards compatibility).
 - Wiring pattern (see `main.go`): `api.NewServer(ab, cfg)` returns a `ServerInterface`; pass it to `api.HandlerFromMux(server, router)`.
+- **Endpoint structure**:
+  - `GET /connect` — connect to default session's CDP WebSocket (launches if not running)
+  - `GET /connect/{sessionName}` — connect to named session's CDP WebSocket (launches if not running)
+  - `DELETE /sessions/{sessionName}` — close a session
+  - `GET /health` — health check
+- **WebSocket endpoints must be GET.** Per RFC 6455, WebSocket upgrades are always HTTP GET requests. The `/connect` endpoints must be declared as `get` (not `post`) in `openapi.yaml`, otherwise the chi router returns `405 Method Not Allowed` and the WebSocket upgrade never reaches the handler.
 
 ### `internal/agentbrowser`
 
