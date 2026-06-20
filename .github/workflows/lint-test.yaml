@@ -48,10 +48,16 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Setup node
+        uses: actions/setup-node@v4
+
       - name: Setup task
         uses: arduino/setup-task@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install agent-browser
+        run: npm install -g agent-browser
 
       - name: Download dependencies
         run: go mod download
