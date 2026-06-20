@@ -6,7 +6,11 @@ import (
 	"net/http"
 
 	"github.com/ahobsonsayers/browserful/internal/proxy"
+
+	haikunator "github.com/atrox/haikunatorgo/v2"
 )
+
+var sessionNameGenerator = haikunator.New()
 
 // ConnectDefaultSession is overridden by the ServerOverrides ConnectDefaultSession below
 func (Server) ConnectDefaultSession(
@@ -30,7 +34,8 @@ func (Server) CloseSession(
 }
 
 func (s ServerOverrides) ConnectDefaultSession(w http.ResponseWriter, r *http.Request) {
-	err := s.handleConnect(w, r, "default")
+	sessionName := sessionNameGenerator.Haikunate()
+	err := s.handleConnect(w, r, sessionName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
