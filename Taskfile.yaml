@@ -43,4 +43,5 @@ tasks:
       - |
         docker run --rm \
           --name browserful \
+          -p 8080:8080 \
           browserful
