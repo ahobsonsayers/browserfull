@@ -2,6 +2,10 @@
 
 A Go HTTP server that proxies to browser CDP (Chrome DevTools Protocol) sessions via WebSocket.
 
+## Documentation Maintenance
+
+**For any and all code/config changes, you MUST review both `README.md` and `AGENTS.md` to determine whether they need updates, and make those updates if so.** This includes new features, refactors, behavior changes, new dependencies, endpoint/CLI/config changes, architecture shifts, workflow additions, or anything else that affects how the project is built, run, tested, configured, or understood. Treat this as a mandatory final step of every change.
+
 ## Developer Workflow (Taskfile first)
 
 **Always use the Taskfile (`task <task>`) for common operations** like lint, test, format, build, generate. Do not run ad-hoc `go`/`golangci-lint`/`gofumpt`/`oapi-codegen` commands directly — go through the defined task. If no task exists for the specific thing being done, run the command directly and consider adding a task for it.
