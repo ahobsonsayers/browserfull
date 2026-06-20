@@ -30,6 +30,12 @@ func CDP(
 
 	proxy := websocketproxy.NewProxy(parsedCDPUrl)
 	proxy.Upgrader = NewUpgrader(allowedOrigins)
+	// Strip Origin from the outbound headers so the chrome cdp 
+	// endpoint doesn't reject the connection. Out upgrader origin 
+	// check will still run against the inbound request.
+	proxy.Director = func(_ *http.Request, out http.Header) {
+		out.Del("Origin")
+	}
 	proxy.ServeHTTP(response, request)
 	return nil
 }
