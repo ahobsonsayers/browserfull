@@ -142,11 +142,15 @@ func (b *Browser) runCmd(args ...string) ([]byte, error) {
 	}
 
 	cmd := exec.Command(b.execPath, args...)
-	cmd.Env = append(
+	env := append(
 		os.Environ(),
-		"AGENT_BROWSER_CONFIG="+b.cfg.ConfigFilePath(),
-		"AGENT_BROWSER_SOCKET_DIR="+b.cfg.DataDir,
+		fmt.Sprintf("AGENT_BROWSER_CONFIG=%s", b.cfg.ConfigFilePath()),
+		fmt.Sprintf("AGENT_BROWSER_SOCKET_DIR=%s", b.cfg.DataDir),
 	)
+	if b.cfg.BrowserExecPath != "" {
+		env = append(env, fmt.Sprintf("AGENT_BROWSER_EXECUTABLE_PATH=%s", b.cfg.BrowserExecPath))
+	}
+	cmd.Env = env
 	return cmd.CombinedOutput()
 }
 
