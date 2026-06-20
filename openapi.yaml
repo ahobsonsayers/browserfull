@@ -1,0 +1,46 @@
+openapi: 3.0.0
+info:
+  title: Browserful API
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+  /sessions:
+    post:
+      summary: Launch a browser session and connect to its CDP WebSocket
+      operationId: launchDefaultSession
+      responses:
+        '101':
+          description: WebSocket upgrade successful
+  /sessions/{sessionName}:
+    post:
+      summary: Launch a named browser session and connect to its CDP WebSocket
+      operationId: launchNamedSession
+      parameters:
+        - name: sessionName
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+      responses:
+        '101':
+          description: WebSocket upgrade successful
+    delete:
+      summary: Close a browser session
+      operationId: closeSession
+      parameters:
+        - name: sessionName
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+      responses:
+        '204':
+          description: Session closed
