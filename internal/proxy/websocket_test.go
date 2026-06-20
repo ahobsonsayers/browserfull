@@ -42,14 +42,14 @@ func TestNewUpgrader(t *testing.T) {
 		},
 		{
 			name:           "wildcard: cross origin allowed",
-			allowedOrigins: []string{"0.0.0.0"},
+			allowedOrigins: []string{"*"},
 			originHeader:   "http://evil.com",
 			requestHost:    "127.0.0.1:8080",
 			want:           true,
 		},
 		{
 			name:           "wildcard: missing origin allowed",
-			allowedOrigins: []string{"0.0.0.0"},
+			allowedOrigins: []string{"*"},
 			originHeader:   "",
 			requestHost:    "127.0.0.1:8080",
 			want:           true,

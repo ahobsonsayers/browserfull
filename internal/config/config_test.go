@@ -93,12 +93,12 @@ func TestLoad_AllowedOrigins(t *testing.T) {
 	})
 
 	t.Run("single value", func(t *testing.T) {
-		t.Setenv("BROWSERFUL_ALLOWED_ORIGINS", "0.0.0.0")
+		t.Setenv("BROWSERFUL_ALLOWED_ORIGINS", "*")
 
 		cfg, err := Load()
 		require.NoError(t, err)
 		require.NotNil(t, cfg)
-		assert.Equal(t, []string{"0.0.0.0"}, cfg.AllowedOrigins)
+		assert.Equal(t, []string{"*"}, cfg.AllowedOrigins)
 	})
 
 	t.Run("comma separated", func(t *testing.T) {

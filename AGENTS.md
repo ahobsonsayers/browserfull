@@ -73,7 +73,7 @@ api/middleware/        — OpenAPI request validation + structured request loggi
 ### `internal/proxy`
 
 - `proxy.CDP(w, r, cdpURL, allowedOrigins)` upgrades the inbound request to a WebSocket and proxies it to the CDP URL.
-- Origin checker: if `allowedOrigins` contains `"0.0.0.0"`, all origins are accepted; otherwise the Origin header host must match the request host or be in `allowedOrigins`. Missing Origin header is allowed.
+- Origin checker: if `allowedOrigins` contains `"*"`, all origins are accepted; otherwise the Origin header host must match the request host or be in `allowedOrigins`. Missing Origin header is allowed.
 
 ## External Dependencies
 
@@ -86,7 +86,7 @@ Loaded from environment variables via `go-envconfig` (`internal/config/config.go
 
 - `BROWSERFUL_PORT` — default `8080`
 - `BROWSERFUL_DATA_DIR` — default `$HOME/.browserful`; sets `AGENT_BROWSER_SOCKET_DIR` (session metadata files) and `AGENT_BROWSER_CONFIG` (`<DataDir>/config.json`). See https://agent-browser.dev/configuration.
-- `BROWSERFUL_ALLOWED_ORIGINS` — comma-separated list of allowed WebSocket origin hostnames; `0.0.0.0` disables origin checking.
+- `BROWSERFUL_ALLOWED_ORIGINS` — comma-separated list of allowed WebSocket origin hostnames; `*` disables origin checking.
 - `go-envconfig` runs default values through `os.Expand`, so `$HOME` in the `default=` tag works.
 
 ## Testing

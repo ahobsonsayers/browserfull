@@ -60,7 +60,7 @@ Configured via environment variables:
 |----------|---------|-------------|
 | `BROWSERFUL_PORT` | `8080` | HTTP listen port |
 | `BROWSERFUL_DATA_DIR` | `$HOME/.browserful` | Session metadata + agent-browser config dir |
-| `BROWSERFUL_ALLOWED_ORIGINS` | _none_ | Comma-separated allowed WebSocket origin hostnames; `0.0.0.0` allows all |
+| `BROWSERFUL_ALLOWED_ORIGINS` | _none_ | Comma-separated allowed WebSocket origin hostnames; `*` allows all |
 
 ## How it works
 

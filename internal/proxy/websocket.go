@@ -47,7 +47,7 @@ func CDP(
 
 func newOriginChecker(allowedOrigins []string) func(r *http.Request) bool {
 	// Check origin function that allows all origins
-	if slices.Contains(allowedOrigins, "0.0.0.0") {
+	if slices.Contains(allowedOrigins, "*") {
 		return func(_ *http.Request) bool { return true }
 	}
 
