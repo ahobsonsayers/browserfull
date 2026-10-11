@@ -34,7 +34,7 @@ func TestListSessions(t *testing.T) {
 	router := chi.NewRouter()
 	HandlerFromMux(server, router)
 
-	req := httptest.NewRequest(http.MethodGet, "/sessions", nil)
+	req := httptest.NewRequest(http.MethodGet, "/sessions", http.NoBody)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
