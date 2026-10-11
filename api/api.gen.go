@@ -8,6 +8,7 @@ import (
 	"compress/flate"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -30,6 +31,9 @@ type ServerInterface interface {
 	// Health check
 	// (GET /health)
 	HealthCheck(w http.ResponseWriter, r *http.Request)
+	// List active browser session names
+	// (GET /sessions)
+	ListSessions(w http.ResponseWriter, r *http.Request)
 	// Close a browser session
 	// (DELETE /sessions/{sessionName})
 	CloseSession(w http.ResponseWriter, r *http.Request, sessionName string)
@@ -54,6 +58,12 @@ func (_ Unimplemented) ConnectNamedSession(w http.ResponseWriter, r *http.Reques
 // Health check
 // (GET /health)
 func (_ Unimplemented) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List active browser session names
+// (GET /sessions)
+func (_ Unimplemented) ListSessions(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -117,6 +127,20 @@ func (siw *ServerInterfaceWrapper) HealthCheck(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.HealthCheck(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSessions operation middleware
+func (siw *ServerInterfaceWrapper) ListSessions(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSessions(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -275,6 +299,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/health", wrapper.HealthCheck)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/sessions", wrapper.ListSessions)
+	})
+	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/sessions/{sessionName}", wrapper.CloseSession)
 	})
 
@@ -327,6 +354,27 @@ func (response HealthCheck200Response) VisitHealthCheckResponse(w http.ResponseW
 	return nil
 }
 
+type ListSessionsRequestObject struct {
+}
+
+type ListSessionsResponseObject interface {
+	VisitListSessionsResponse(w http.ResponseWriter) error
+}
+
+type ListSessions200JSONResponse []string
+
+func (response ListSessions200JSONResponse) VisitListSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CloseSessionRequestObject struct {
 	SessionName string `json:"sessionName"`
 }
@@ -354,6 +402,9 @@ type StrictServerInterface interface {
 	// Health check
 	// (GET /health)
 	HealthCheck(ctx context.Context, request HealthCheckRequestObject) (HealthCheckResponseObject, error)
+	// List active browser session names
+	// (GET /sessions)
+	ListSessions(ctx context.Context, request ListSessionsRequestObject) (ListSessionsResponseObject, error)
 	// Close a browser session
 	// (DELETE /sessions/{sessionName})
 	CloseSession(ctx context.Context, request CloseSessionRequestObject) (CloseSessionResponseObject, error)
@@ -462,6 +513,30 @@ func (sh *strictHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListSessions operation middleware
+func (sh *strictHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
+	var request ListSessionsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSessions(ctx, request.(ListSessionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSessions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListSessionsResponseObject); ok {
+		if err := validResponse.VisitListSessionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // CloseSession operation middleware
 func (sh *strictHandler) CloseSession(w http.ResponseWriter, r *http.Request, sessionName string) {
 	var request CloseSessionRequestObject
@@ -493,13 +568,18 @@ func (sh *strictHandler) CloseSession(w http.ResponseWriter, r *http.Request, se
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"zJLNbtQwEMdfZTTiACK7zRYu5Fa2B3pBlfaARFWQa082VhPbeMZFy8rvjuwULdou4oCQenIUZ37z/8ge",
-	"res9dnsUKyNhh++j/84U+zTCxfUVNvhAka132GG7XC1bzA36QE4Fix2+WbbLFhsMSgYumDPtnSMt5XlL",
-	"9fCBohLr3ZXBDtfz/SX1Ko2yIa7wBiNx8I6pUlbtqhyGWEcbZF7/ie42Xt+TQArbqAwBJ62JuU8j5twg",
-	"p2lScXdYAuJBBgIzL4O72RvwvBXWl9dwoL4cVXJ6IAbbg/MCMTln3fZVhf8ydrZ/nP6oJsp/s1k+MgeT",
-	"QUU1kVBk7G5K9tjV6LBBp6YS/2/wGsq3ZCMZ7CQmapD1QJMq24ISoVjmv9yoxY+Lxed28e7r4vb1C2xQ",
-	"dqGyJFq3xZxv/1+8Copw82/RDqRGGf6Y5Yd6vR5I3x//KOdt+9TJhuKD1QSWYSbvjvTPQNCVWBU8yuan",
-	"7RoaSehEwaNnenbNnrdvT+Uxd6KLZHPcZXkJ6rhAzDnnnwEAAP//",
+	"xJVfa9w6EMW/yiAuJOHajje5cKn7lG4eEiglEEqhadqdyLNrNbakauRNtou/e5G8/+JN+hJK3xZLGv3O",
+	"mTPapVB6akSxFCWxdMp6ZbQoxDtnHphcipxiyuTmSlIBNbZaVsRw1y8zGA0lNahLmCsEnJH26WoRIHym",
+	"R2uYGAhlBUzMyugDhvH5FXyiu2sj78kD6dIapX32RYtEeOVr2jJM27qGs6tLkYg5Oe758myU5aJLhLGk",
+	"0SpRiNMsz3KRCIu+4qDoWBqtSfrwe0Z+X+RHO3NYEoM3gDs41plHRWX/2aEuTVMvUo0NlQMJa3A4vEB1",
+	"32r0xiVA2SyDyYNiu0jLln06Oj39f3KUiYjrMFx/WYpCjHvAc5piW/vrvrRIhCO2RjNFGaN8tI++hW17",
+	"EcCtlMQ8bWvRdYngtmnQLbaXBDW+Iij7y9YtXAsadORw02o1BW08uFZrpWdHsfja2ePl6vQHbKh7jc+B",
+	"7HcGv91mL2xdQz+Fe9HggFdu7bXosCFPjkVxM4QNe8FM4zUDj0J9FfaEiIlEBGBRiB0PYu9+tMpRKQrv",
+	"WkoEy4oaDKZY9J5cOP/1BtOfZ+nnPH3zLb39958Q+oWNtbxTeia67vbPpQBXTr8qARVh7audlj81/iIu",
+	"jyuS98M8n+T5vpLr/okBxdBXXgz4+4IgY8VIsMLmF2N3Jr2ab7MSRHMCyODIGueDAwuYPH2z1ptrxX6y",
+	"n6f3itdjyi/okkZ70hEHra2VjKePv3NgWu7EQXlq4sFB6zdZQOcw2NAle2btKBr4FAgBe+VDUdv9G/P2",
+	"J7ikmjztuzmu4zu+M30Hm/+B+PgPnJRh/zMWxjqvn8UQ5HjF3xzKk/y/56LcA0a6cjiG4SPgUE3ocvdr",
+	"AA==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

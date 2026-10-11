@@ -40,7 +40,7 @@ internal/agentbrowser  — Launches browser sessions via `agent-browser` CLI, re
 internal/proxy         — WebSocket reverse proxy to a CDP URL (gorilla/websocket + koding/websocketproxy); HTTP reverse proxy to the dashboard (httputil)
 api/                   — oapi-codegen generated HTTP server (chi) + hand-written handlers
 api/api.gen.go         — GENERATED. Do not edit. Regenerate with `task generate`.
-api/server.go          — Strict server + ServerOverrides wrapper holding agentBrowser + allowedOrigins
+api/server.go          — Strict server holding all state (agentBrowser, allowedOrigins) + ServerOverrides wrapper; overrides exist only for the WebSocket connect handlers, which need the raw http.ResponseWriter
 api/connect.go         — Connect (launch + CDP proxy) and close session handlers; default session uses haikunator for random names
 api/health.go          — Health check handler
 api/middleware/        — OpenAPI request validation + structured request logging (httplog, includes recoverer)
@@ -60,6 +60,7 @@ The agent-browser dashboard binds to `127.0.0.1` only, so it cannot be exposed d
 - **Endpoint structure**:
   - `GET /connect` — connect to a randomly-named session's CDP WebSocket (launches if not running); name generated via haikunator (e.g. `wispy-dust-1337`)
   - `GET /connect/{sessionName}` — connect to named session's CDP WebSocket (launches if not running)
+  - `GET /sessions` — list active session names
   - `DELETE /sessions/{sessionName}` — close a session
   - `GET /health` — health check
 - **WebSocket endpoints must be GET.** Per RFC 6455, WebSocket upgrades are always HTTP GET requests. The `/connect` endpoints must be declared as `get` (not `post`) in `openapi.yaml`, otherwise the chi router returns `405 Method Not Allowed` and the WebSocket upgrade never reaches the handler.

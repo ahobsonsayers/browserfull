@@ -26,11 +26,15 @@ func (Server) ConnectNamedSession(
 	return nil, nil
 }
 
-// CloseSession is overridden by the ServerOverrides CloseSession below
-func (Server) CloseSession(
-	context.Context, CloseSessionRequestObject,
+func (s Server) CloseSession(
+	_ context.Context, r CloseSessionRequestObject,
 ) (CloseSessionResponseObject, error) {
-	return nil, nil
+	err := s.agentBrowser.Close(r.SessionName)
+	if err != nil {
+		return nil, err
+	}
+
+	return CloseSession204Response{}, nil
 }
 
 func (s ServerOverrides) ConnectDefaultSession(w http.ResponseWriter, r *http.Request) {
@@ -50,25 +54,15 @@ func (s ServerOverrides) ConnectNamedSession(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (s ServerOverrides) CloseSession(w http.ResponseWriter, _ *http.Request, sessionName string) {
-	err := s.agentBrowser.Close(sessionName)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
 func (s ServerOverrides) handleConnect(
 	w http.ResponseWriter, r *http.Request, sessionName string,
 ) error {
-	info, err := s.agentBrowser.Launch(sessionName)
+	info, err := s.server.agentBrowser.Launch(sessionName)
 	if err != nil {
 		return fmt.Errorf("error launching browser session cdp: %w", err)
 	}
 
-	err = proxy.CDP(w, r, info.CDPURL, s.allowedOrigins)
+	err = proxy.CDP(w, r, info.CDPURL, s.server.allowedOrigins)
 	if err != nil {
 		return fmt.Errorf("error proxying cdp: %w", err)
 	}
