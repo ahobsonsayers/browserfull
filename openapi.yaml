@@ -2,46 +2,68 @@ openapi: 3.0.0
 info:
   title: Browserfull API
   version: 0.1.0
+  description: >
+    Browser-as-a-service: launches browsers on demand via agent-browser 
+    and exposes each session's CDP WebSocket endpoint.
 paths:
   /health:
     get:
       summary: Health check
       operationId: healthCheck
       responses:
-        '200':
+        "200":
           description: Service is healthy
   /connect:
     get:
       summary: Connect to the default browser session CDP WebSocket (launches if not running)
+      description: Upgrades to a WebSocket proxied to a randomly-named session's CDP endpoint (Haikunator, e.g. `wispy-dust-1337`).
       operationId: connectDefaultSession
       responses:
-        '101':
+        "101":
           description: WebSocket upgrade successful
   /connect/{sessionName}:
     get:
       summary: Connect to a named browser session CDP WebSocket (launches if not running)
+      description: Upgrades to a WebSocket proxied to the named session's CDP endpoint; launches the session if not running.
       operationId: connectNamedSession
       parameters:
         - name: sessionName
           in: path
           required: true
+          description: "Name of the browser session."
           schema:
             type: string
-            pattern: '^[a-zA-Z0-9_-]+$'
+            pattern: "^[a-zA-Z0-9_-]+$"
       responses:
-        '101':
+        "101":
           description: WebSocket upgrade successful
+  /sessions:
+    get:
+      summary: List active browser session names
+      description: Active session names, as reported by `agent-browser session list`.
+      operationId: listSessions
+      responses:
+        "200":
+          description: Session names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
   /sessions/{sessionName}:
     delete:
       summary: Close a browser session
+      description: Closes the session's browser via `agent-browser close`.
       operationId: closeSession
       parameters:
         - name: sessionName
           in: path
           required: true
+          description: "Name of the browser session to close."
           schema:
             type: string
-            pattern: '^[a-zA-Z0-9_-]+$'
+            pattern: "^[a-zA-Z0-9_-]+$"
       responses:
-        '204':
+        "204":
           description: Session closed

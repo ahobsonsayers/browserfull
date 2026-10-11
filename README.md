@@ -51,6 +51,7 @@ agent-browser snapshot
 |--------|------|-------------|
 | `GET` | `/connect` | Connect to a randomly-named session's CDP WebSocket (launches if not running) |
 | `GET` | `/connect/{sessionName}` | Connect to a named session's CDP WebSocket (launches if not running) |
+| `GET` | `/sessions` | List active session names |
 | `DELETE` | `/sessions/{sessionName}` | Close a session |
 | `GET` | `/health` | Health check |
 
