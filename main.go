@@ -56,8 +56,12 @@ func main() {
 		api.HandlerFromMux(server, r)
 	})
 
-	// Register unmatched requests should be routed to dashboard proxy
-	router.Handle("/*", proxy.Dashboard())
+	// Serve dashboard only on its known paths
+	dashboard := proxy.Dashboard()
+	router.Handle("/", dashboard)
+	router.Handle("/_next/*", dashboard)
+	router.Handle("/api/*", dashboard) // This is the dashboard api
+	router.Handle("/favicon.ico", dashboard)
 
 	// Start listening
 	address := fmt.Sprintf("0.0.0.0:%d", cfg.Port)
