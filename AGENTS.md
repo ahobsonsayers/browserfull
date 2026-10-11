@@ -34,7 +34,7 @@ Available tasks:
 ## Architecture
 
 ```
-main.go               — Entrypoint: loads config, starts dashboard, builds chi router with API routes (OpenAPI-validated) + dashboard catch-all proxy, serves on 0.0.0.0:<port>
+main.go               — Entrypoint: loads config, starts dashboard, builds chi router with API routes (OpenAPI-validated) + dashboard proxy (only on its known paths), serves on 0.0.0.0:<port>
 internal/config        — Env-config (port, data dir, allowed origins); validates fields
 internal/agentbrowser  — Launches browser sessions via `agent-browser` CLI, reads session metadata from <DataDir>/
 internal/proxy         — WebSocket reverse proxy to a CDP URL (gorilla/websocket + koding/websocketproxy); HTTP reverse proxy to the dashboard (httputil)
@@ -48,7 +48,7 @@ api/middleware/        — OpenAPI request validation + structured request loggi
 
 ### Dashboard proxy
 
-The agent-browser dashboard binds to `127.0.0.1` only, so it cannot be exposed directly via Docker port mapping. Browserfull starts the dashboard (via `agent-browser dashboard start`) and reverse-proxies it at `/` on the same port as the HTTP API. The OpenAPI routes (`/connect`, `/sessions`, `/health`) are registered on a dedicated `apiRouter` with validation middleware and mounted via `router.Mount("/", apiHandler)`; they take precedence over the `/*` catch-all in chi's radix tree, so API requests are never swallowed by the dashboard proxy.
+The agent-browser dashboard binds to `127.0.0.1` only, so it cannot be exposed directly via Docker port mapping. Browserfull starts the dashboard (via `agent-browser dashboard start`) and reverse-proxies it on the same port as the HTTP API, but only on the dashboard's known paths: `/`, `/_next/*` (Next.js assets), `/api/*` (dashboard API incl. the `wss /api/session/{port}/stream` WebSocket), and `/favicon.ico`. All other paths return chi's default 404.
 
 ### OpenAPI / oapi-codegen
 
@@ -80,7 +80,7 @@ The agent-browser dashboard binds to `127.0.0.1` only, so it cannot be exposed d
 ### `internal/proxy`
 
 - `proxy.CDP(w, r, cdpURL, allowedOrigins)` upgrades the inbound request to a WebSocket and proxies it to the CDP URL.
-- `proxy.Dashboard()` returns an `httputil.ReverseProxy` handler to the dashboard (hardcoded `http://127.0.0.1:4848`). Mounted as a `/*` catch-all on the main chi router in `main.go`.
+- `proxy.Dashboard()` returns an `httputil.ReverseProxy` handler to the dashboard (hardcoded `http://127.0.0.1:4848`). Mounted only on the dashboard's known paths (`/`, `/_next/*`, `/api/*`, `/favicon.ico`) on the main chi router in `main.go`; unknown paths 404.
 - Origin checker: if `allowedOrigins` contains `"*"`, all origins are accepted; otherwise the Origin header host must match the request host or be in `allowedOrigins`. Missing Origin header is allowed.
 
 ## External Dependencies
