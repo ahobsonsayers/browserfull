@@ -1,5 +1,5 @@
 FROM node:24-slim AS agent-browser
-RUN npm install -g agent-browser@0.28.0
+RUN npm install -g --allow-scripts=agent-browser agent-browser@0.28.0
 
 FROM cloakhq/cloakbrowser:latest AS cloakbrowser
 
@@ -18,8 +18,6 @@ RUN go build -v -o ./bin/ .
 
 # Distribution Image
 FROM debian:stable-slim
-
-ARG TARGETARCH
 
 ENV HOME=/browserfull
 
@@ -86,8 +84,7 @@ RUN useradd browser --uid 1000 --home-dir "$HOME" && \
 
 # Install agent-browser
 COPY --from=agent-browser --chown=browser:browser \
-     /usr/local/lib/node_modules/agent-browser/bin/agent-browser-linux-$TARGETARCH \
-     /usr/local/bin/agent-browser
+     /usr/local/bin/agent-browser /usr/local/bin/agent-browser
 
 # Install cloakbrowser
 COPY --from=cloakbrowser --chown=browser:browser /chromium/ /opt/cloakbrowser/
