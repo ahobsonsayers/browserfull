@@ -99,6 +99,10 @@ Loaded from environment variables via `go-envconfig` (`internal/config/config.go
 - `BROWSERFULL_BROWSER_EXECUTABLE_PATH` — optional; sets `AGENT_BROWSER_EXECUTABLE_PATH` to point agent-browser at a custom browser binary (e.g. the bundled cloakbrowser in Docker).
 - `go-envconfig` runs default values through `os.Expand`, so `$HOME` in the `default=` tag works.
 
+## Skills
+
+- `skills/browserfull/SKILL.md` — agent skill for using Browserfull (connect URL, sessions, close). Generic server knowledge sits in the root file; tool-specific attach/close mechanics live in `references/agent-browser.md` and `references/browser-use.md`. It intentionally contains no agent-browser or browser-use command knowledge: it always instructs loading the tool's skill. Tool selection follows what is installed; both or neither defaults to agent-browser. When skills are missing it offers `npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browser` or `uv tool install browser-use && browser-use skill install` after user approval. If you change API endpoints or behavior, update the skill and its references to match.
+
 ## Testing
 
 - Use `task test` to run. `task test:clean` clears cache first.

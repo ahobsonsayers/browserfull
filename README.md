@@ -93,6 +93,10 @@ task build        # build binary to ./bin/
 task build:docker # build docker image
 ```
 
+## Agent skill
+
+A skill for agents that use Browserfull lives at [`skills/browserfull/SKILL.md`](skills/browserfull/SKILL.md), with per-tool reference files under `skills/browserfull/references/`. It covers connecting to a Browserfull server, session management, and closing sessions; all browser-command knowledge is delegated to the [agent-browser](https://github.com/vercel-labs/agent-browser) and [browser-use](https://github.com/browser-use/browser-use) skills.
+
 ## Acknowledgements
 
 This project is a thin server on top of [agent-browser](https://agent-browser.dev/) — give it a star if you find Browserfull useful.
