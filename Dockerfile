@@ -1,7 +1,13 @@
-FROM node:24-slim AS agent-browser
-RUN npm install -g --allow-scripts=agent-browser agent-browser@0.28.0
+ARG AGENT_BROWSER_VERSION=0.43.0
+# Cloakbrowser Capped below 0.7.0
+# Newer images carry no binary and need a license key to download it
+ARG CLOAKBROWSER_VERSION=0.6.5
 
-FROM cloakhq/cloakbrowser:latest AS cloakbrowser
+FROM node:24-slim AS agent-browser
+ARG AGENT_BROWSER_VERSION
+RUN npm install -g --allow-scripts=agent-browser agent-browser@$AGENT_BROWSER_VERSION
+
+FROM cloakhq/cloakbrowser:$CLOAKBROWSER_VERSION AS cloakbrowser
 
 # Move cloakbrowser to a stable location
 RUN CLOAKBROWSER_DIR=$(find /root/.cloakbrowser -maxdepth 1 -type d -name "chromium-*" | head -1) && \

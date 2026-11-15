@@ -5,6 +5,12 @@ on:
     branches:
       - main
 
+  # Nightly build, after the dependency update workflow has run
+  schedule:
+    - cron: 0 3 * * *
+
+  workflow_dispatch:
+
 jobs:
   lint-test:
     name: Lint and Test
@@ -17,5 +23,4 @@ jobs:
     needs: [lint-test]
     secrets: inherit
     with:
-      ref: ${{ github.sha }}
-      tags: develop,${{ github.sha }}
+      tags: latest,develop,${{ github.sha }}
