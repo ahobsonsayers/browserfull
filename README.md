@@ -17,6 +17,8 @@ docker run --rm -p 8080:8080 browserfull
 
 agent-browser uses the bundled cloakbrowser chromium as its default browser. To use a different browser, override `BROWSERFULL_BROWSER_EXECUTABLE_PATH` at `docker run` time.
 
+Images on Docker Hub are tagged `latest`, `develop`, and `<app-version>-ab<agent-browser>-cb<cloakbrowser>` (e.g. `v0.3.0-ab0.43.0-cb0.6.5`). The two bundled binaries are pinned in the `Dockerfile` and bumped by a nightly workflow.
+
 ### Run locally
 
 Prerequisites: Go 1.24.3+ and [`agent-browser`](https://agent-browser.dev/) on your `$PATH`.
@@ -92,6 +94,10 @@ task generate     # regenerate api/api.gen.go from openapi.yaml
 task build        # build binary to ./bin/
 task build:docker # build docker image
 ```
+
+## Agent skill
+
+A skill for agents that use Browserfull lives at [`skills/browserfull/SKILL.md`](skills/browserfull/SKILL.md), with per-tool reference files under `skills/browserfull/references/`. It covers connecting to a Browserfull server, session management, and closing sessions; all browser-command knowledge is delegated to the [agent-browser](https://github.com/vercel-labs/agent-browser) and [browser-use](https://github.com/browser-use/browser-use) skills.
 
 ## Acknowledgements
 

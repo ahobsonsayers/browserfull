@@ -87,7 +87,7 @@ The agent-browser dashboard binds to `127.0.0.1` only, so it cannot be exposed d
 
 - **`agent-browser` CLI** — The `internal/agentbrowser` package shells out to `agent-browser open`, `agent-browser get cdp-url`, `agent-browser session list`, `agent-browser close`. The server (`main.go`) fails to start without this binary on `$PATH` (`exec.LookPath`). Integration tests also require it.
 - **Docs**: https://agent-browser.dev/ (Commands: https://agent-browser.dev/commands, Configuration: https://agent-browser.dev/configuration, Sessions: https://agent-browser.dev/sessions)
-- **Docker image** — The Dockerfile bundles `agent-browser` (v0.28.0, installed via npm builder stage) and cloakbrowser (stealth-patched Chromium from `cloakhq/cloakbrowser:latest`). `BROWSERFULL_BROWSER_EXECUTABLE_PATH=/opt/cloakbrowser/chrome` wires agent-browser to use the bundled cloakbrowser as its default browser. No host `agent-browser` or Chrome install is needed when running via Docker. Override `BROWSERFULL_BROWSER_EXECUTABLE_PATH` to use a different browser.
+- **Docker image** — The Dockerfile bundles `agent-browser` (installed via npm builder stage) and cloakbrowser (stealth-patched Chromium from `cloakhq/cloakbrowser`). Both are **pinned** by top-of-file ARGs — `ARG AGENT_BROWSER_VERSION=`, `ARG CLOAKBROWSER_VERSION=` — which the `update.yaml` workflow bumps daily; never use `latest` or a floating tag for either. `BROWSERFULL_BROWSER_EXECUTABLE_PATH=/opt/cloakbrowser/chrome` wires agent-browser to use the bundled cloakbrowser as its default browser. No host `agent-browser` or Chrome install is needed when running via Docker. Override `BROWSERFULL_BROWSER_EXECUTABLE_PATH` to use a different browser.
 
 ## Configuration
 
@@ -98,6 +98,10 @@ Loaded from environment variables via `go-envconfig` (`internal/config/config.go
 - `BROWSERFULL_ALLOWED_ORIGINS` — comma-separated list of allowed WebSocket origin hostnames; `*` disables origin checking.
 - `BROWSERFULL_BROWSER_EXECUTABLE_PATH` — optional; sets `AGENT_BROWSER_EXECUTABLE_PATH` to point agent-browser at a custom browser binary (e.g. the bundled cloakbrowser in Docker).
 - `go-envconfig` runs default values through `os.Expand`, so `$HOME` in the `default=` tag works.
+
+## Skills
+
+- `skills/browserfull/SKILL.md` — agent skill for using Browserfull (connect URL, sessions, close). Generic server knowledge sits in the root file; tool-specific attach/close mechanics live in `references/agent-browser.md` and `references/browser-use.md`. It intentionally contains no agent-browser or browser-use command knowledge: it always instructs loading the tool's skill. Tool selection follows what is installed; both or neither defaults to agent-browser. When skills are missing it offers `npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browser` or `uv tool install browser-use && browser-use skill install` after user approval. If you change API endpoints or behavior, update the skill and its references to match.
 
 ## Testing
 
@@ -110,6 +114,10 @@ Loaded from environment variables via `go-envconfig` (`internal/config/config.go
 
 ## CI / Release
 
+Workflows for the Docker image live in this repo; the build and dependency-bump jobs call the reusable workflows in [`ahobsonsayers/github-workflows`](https://github.com/ahobsonsayers/github-workflows) (`docker-build-push.yaml`, `docker-update-app-version.yaml`) at `@main`. They need the repo **variable** `DOCKER_REGISTRY_USERNAME` and **secret** `DOCKER_REGISTRY_PASSWORD` (Docker Hub); callers pass `secrets: inherit`.
+
 - **PRs** (`.github/workflows/pull-request.yaml`): lint (golangci-lint-action) + test (`task test`) via reusable `lint-test.yaml`.
-- **Main** (`.github/workflows/main.yaml`): lint-test → build and push Docker image (`arranhs/browserfull`) tagged `develop` + commit SHA.
-- **Releases** (`.github/workflows/release.yaml`): manual workflow dispatch with semver bump; creates annotated git tag, GitHub release, then builds/pushes Docker image tagged `latest` + version.
+- **Main** (`.github/workflows/main.yaml`): on push to main, and nightly at 03:00 UTC → lint-test → build and push `arranhs/browserfull` tagged `latest`, `develop`, commit SHA, and the combined version tag.
+- **Dependency update** (`.github/workflows/update.yaml`): nightly at 02:00 UTC → bumps `ARG AGENT_BROWSER_VERSION` (npm) and `ARG CLOAKBROWSER_VERSION` (Docker Hub) in the Dockerfile and commits to main. A `GITHUB_TOKEN` push does not trigger `main.yaml`, which is why the build runs an hour later. The cloakbrowser bump is capped below `0.7.0`: those images ship no Chromium binary — it is downloaded at runtime behind a license key — so the Dockerfile's `mv` of `/root/.cloakbrowser/chromium-*` fails.
+- **Releases** (`.github/workflows/release.yaml`): manual workflow dispatch with semver bump; creates annotated git tag, GitHub release, then builds/pushes tagged `latest` + the new version tag.
+- **Image tags** (computed in `build-push.yaml`): `latest`, caller-supplied tags, and always `<app-version>-ab<agent-browser>-cb<cloakbrowser>` — e.g. `v0.3.0-ab0.43.0-cb0.6.5`. App version is the `app-version` input (release), else the tag on the built commit, else `dev-<short sha>`. Untagged commits never reuse an earlier tag, so a combination tag always names the code it contains.
