@@ -19,6 +19,8 @@ docker run --rm -p 8080:8080 browserfull
 
 agent-browser uses the bundled clearcote Chromium as its default browser. To use a different browser, override `BROWSERFULL_BROWSER_EXECUTABLE_PATH` at `docker run` time.
 
+Sessions run **headed** on a virtual display, because headless Chrome is itself a detection signal. The image starts Xvfb and sets `BROWSERFULL_DEFAULT_HEADED=true`. Pass `?headed=false` on a connect URL for a headless session, or set `BROWSERFULL_DEFAULT_HEADED=false` to make headless the default.
+
 Images on Docker Hub are tagged `latest`, `develop`, and `<app-version>-ab<agent-browser>-cc<clearcote>` (e.g. `v0.3.0-ab0.43.0-cc0.1.0-pre.25`). The two bundled binaries are pinned in the `Dockerfile` and bumped by a nightly workflow.
 
 ### Run locally
@@ -61,6 +63,8 @@ agent-browser snapshot
 
 `sessionName` must match `^[a-zA-Z0-9_-]+$`.
 
+Both connect endpoints take an optional `?headed=true|false`, which overrides `BROWSERFULL_DEFAULT_HEADED`. It applies when the session launches; a session that is already running keeps its mode.
+
 ## Configuration
 
 Configured via environment variables:
@@ -71,6 +75,7 @@ Configured via environment variables:
 | `BROWSERFULL_DATA_DIR`                | `$HOME/.browserfull` | Session metadata + agent-browser config dir                                      |
 | `BROWSERFULL_ALLOWED_ORIGINS`         | _none_               | Comma-separated allowed WebSocket origin hostnames; `*` allows all               |
 | `BROWSERFULL_BROWSER_EXECUTABLE_PATH` | _none_               | Browser executable path passed to agent-browser; overrides Chrome auto-discovery |
+| `BROWSERFULL_DEFAULT_HEADED`         | `false`              | Launch sessions with a visible window (needs `DISPLAY`); the Docker image sets `true` |
 
 ## How it works
 

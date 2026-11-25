@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ahobsonsayers/browserfull/internal/agentbrowser"
 	"github.com/ahobsonsayers/browserfull/internal/proxy"
 
 	haikunator "github.com/atrox/haikunatorgo/v2"
@@ -37,17 +38,21 @@ func (s Server) CloseSession(
 	return CloseSession204Response{}, nil
 }
 
-func (s ServerOverrides) ConnectDefaultSession(w http.ResponseWriter, r *http.Request) {
+func (s ServerOverrides) ConnectDefaultSession(
+	w http.ResponseWriter, r *http.Request, params ConnectDefaultSessionParams,
+) {
 	sessionName := sessionNameGenerator.Haikunate()
-	err := s.handleConnect(w, r, sessionName)
+	err := s.handleConnect(w, r, sessionName, params.Headed)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-func (s ServerOverrides) ConnectNamedSession(w http.ResponseWriter, r *http.Request, sessionName string) {
-	err := s.handleConnect(w, r, sessionName)
+func (s ServerOverrides) ConnectNamedSession(
+	w http.ResponseWriter, r *http.Request, sessionName string, params ConnectNamedSessionParams,
+) {
+	err := s.handleConnect(w, r, sessionName, params.Headed)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -55,9 +60,9 @@ func (s ServerOverrides) ConnectNamedSession(w http.ResponseWriter, r *http.Requ
 }
 
 func (s ServerOverrides) handleConnect(
-	w http.ResponseWriter, r *http.Request, sessionName string,
+	w http.ResponseWriter, r *http.Request, sessionName string, headed *bool,
 ) error {
-	info, err := s.server.agentBrowser.Launch(sessionName)
+	info, err := s.server.agentBrowser.Launch(sessionName, agentbrowser.LaunchOptions{Headed: s.server.headed(headed)})
 	if err != nil {
 		return fmt.Errorf("error launching browser session cdp: %w", err)
 	}
@@ -68,4 +73,12 @@ func (s ServerOverrides) handleConnect(
 	}
 
 	return nil
+}
+
+func (s Server) headed(requested *bool) bool {
+	if requested != nil {
+		return *requested
+	}
+
+	return s.defaultHeaded
 }

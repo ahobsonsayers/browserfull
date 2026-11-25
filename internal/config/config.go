@@ -14,6 +14,7 @@ type Config struct {
 	Port            uint16   `env:"BROWSERFULL_PORT,default=8080"`
 	AllowedOrigins  []string `env:"BROWSERFULL_ALLOWED_ORIGINS"`
 	BrowserExecPath string   `env:"BROWSERFULL_BROWSER_EXECUTABLE_PATH"`
+	Headed          bool     `env:"BROWSERFULL_DEFAULT_HEADED"`
 	DataDir         string   `env:"BROWSERFULL_DATA_DIR,default=$HOME/.browserfull"`
 }
 

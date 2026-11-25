@@ -23,7 +23,7 @@ func TestListSessions(t *testing.T) {
 
 	// Launch a real session so the list has something to find
 	sessionName := fmt.Sprintf("testsessions%d", time.Now().UnixNano())
-	_, err = ab.Launch(sessionName)
+	_, err = ab.Launch(sessionName, agentbrowser.LaunchOptions{})
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		closeErr := ab.Close(sessionName)

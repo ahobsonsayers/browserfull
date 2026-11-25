@@ -24,12 +24,17 @@ ENV HOME=/browserfull
 ENV BROWSERFULL_ALLOWED_ORIGINS=*
 ENV BROWSERFULL_BROWSER_EXECUTABLE_PATH=/opt/clearcote/chrome
 ENV BROWSERFULL_DATA_DIR=/data
+ENV BROWSERFULL_DEFAULT_HEADED=true
+ENV DISPLAY=:99
+# --test-type drops the infobar --no-sandbox raises in a headed window
+ENV AGENT_BROWSER_ARGS=--test-type
 
 # Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     tini \
+    xvfb \
     # Chromium runtime libraries and fonts, matching the clearcote image
     fonts-ipafont-gothic \
     fonts-liberation \
@@ -89,11 +94,12 @@ COPY --from=clearcote --chown=browser:browser /opt/xdg-cache/clearcote/v*/browse
 
 # Install browserfull
 COPY --from=builder --chown=browser:browser /app/bin/browserfull /usr/local/bin/browserfull
+COPY --chown=browser:browser docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 USER browser
 WORKDIR "$BROWSERFULL_DATA_DIR"
 
 EXPOSE 8080
 
-ENTRYPOINT ["tini", "--"]
+ENTRYPOINT ["tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD ["/usr/local/bin/browserfull"]

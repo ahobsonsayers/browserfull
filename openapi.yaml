@@ -18,6 +18,8 @@ paths:
       summary: Connect to the default browser session CDP WebSocket (launches if not running)
       description: Upgrades to a WebSocket proxied to a randomly-named session's CDP endpoint (Haikunator, e.g. `wispy-dust-1337`).
       operationId: connectDefaultSession
+      parameters:
+        - $ref: "#/components/parameters/Headed"
       responses:
         "101":
           description: WebSocket upgrade successful
@@ -34,6 +36,7 @@ paths:
           schema:
             type: string
             pattern: "^[a-zA-Z0-9_-]+$"
+        - $ref: "#/components/parameters/Headed"
       responses:
         "101":
           description: WebSocket upgrade successful
@@ -67,3 +70,15 @@ paths:
       responses:
         "204":
           description: Session closed
+components:
+  parameters:
+    Headed:
+      name: headed
+      in: query
+      required: false
+      description: >
+        Run the session with a visible window instead of headless. Defaults to
+        BROWSERFULL_DEFAULT_HEADED. Only takes effect when the session launches; a session
+        that is already running keeps the mode it started with.
+      schema:
+        type: boolean
