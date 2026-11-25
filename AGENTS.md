@@ -87,7 +87,9 @@ The agent-browser dashboard binds to `127.0.0.1` only, so it cannot be exposed d
 
 - **`agent-browser` CLI** — The `internal/agentbrowser` package shells out to `agent-browser open`, `agent-browser get cdp-url`, `agent-browser session list`, `agent-browser close`. The server (`main.go`) fails to start without this binary on `$PATH` (`exec.LookPath`). Integration tests also require it.
 - **Docs**: https://agent-browser.dev/ (Commands: https://agent-browser.dev/commands, Configuration: https://agent-browser.dev/configuration, Sessions: https://agent-browser.dev/sessions)
-- **Docker image** — The Dockerfile bundles `agent-browser` (installed via npm builder stage) and cloakbrowser (stealth-patched Chromium from `cloakhq/cloakbrowser`). Both are **pinned** by top-of-file ARGs — `ARG AGENT_BROWSER_VERSION=`, `ARG CLOAKBROWSER_VERSION=` — which the `update.yaml` workflow bumps daily; never use `latest` or a floating tag for either. `BROWSERFULL_BROWSER_EXECUTABLE_PATH=/opt/cloakbrowser/chrome` wires agent-browser to use the bundled cloakbrowser as its default browser. No host `agent-browser` or Chrome install is needed when running via Docker. Override `BROWSERFULL_BROWSER_EXECUTABLE_PATH` to use a different browser.
+- **Docker image** — The Dockerfile bundles `agent-browser` (installed via npm builder stage) and clearcote (open-source stealth Chromium from `clearcotelabs/clearcote-browser`). Both are **pinned** by top-of-file ARGs — `ARG AGENT_BROWSER_VERSION=`, `ARG CLEARCOTE_VERSION=` (a `teamflatearth/clearcote` image tag) — which the `update.yaml` workflow bumps daily; never use `latest` or a floating tag for either. `BROWSERFULL_BROWSER_EXECUTABLE_PATH=/opt/clearcote/chrome` wires agent-browser to use the bundled clearcote as its default browser. No host `agent-browser` or Chrome install is needed when running via Docker. Override `BROWSERFULL_BROWSER_EXECUTABLE_PATH` to use a different browser.
+
+  Clearcote was chosen over a closed stealth Chromium because the open build is BSD-3 with every patch public, needs no licence key or licence server, has no cap on concurrent browsers (so one container serves many sessions), and keeps shipping current Chromium releases. The browser is copied out of the pinned Clearcote Docker image, so each release is one version to bump.
 
 ## Configuration
 
@@ -96,7 +98,7 @@ Loaded from environment variables via `go-envconfig` (`internal/config/config.go
 - `BROWSERFULL_PORT` — default `8080`
 - `BROWSERFULL_DATA_DIR` — default `$HOME/.browserfull`; sets `AGENT_BROWSER_SOCKET_DIR` (session metadata files) and `AGENT_BROWSER_CONFIG` (`<DataDir>/config.json`). See https://agent-browser.dev/configuration.
 - `BROWSERFULL_ALLOWED_ORIGINS` — comma-separated list of allowed WebSocket origin hostnames; `*` disables origin checking.
-- `BROWSERFULL_BROWSER_EXECUTABLE_PATH` — optional; sets `AGENT_BROWSER_EXECUTABLE_PATH` to point agent-browser at a custom browser binary (e.g. the bundled cloakbrowser in Docker).
+- `BROWSERFULL_BROWSER_EXECUTABLE_PATH` — optional; sets `AGENT_BROWSER_EXECUTABLE_PATH` to point agent-browser at a custom browser binary (e.g. the bundled clearcote in Docker).
 - `go-envconfig` runs default values through `os.Expand`, so `$HOME` in the `default=` tag works.
 
 ## Skills
@@ -118,6 +120,6 @@ Workflows for the Docker image live in this repo; the build and dependency-bump 
 
 - **PRs** (`.github/workflows/pull-request.yaml`): lint (golangci-lint-action) + test (`task test`) via reusable `lint-test.yaml`.
 - **Main** (`.github/workflows/main.yaml`): on push to main, and nightly at 03:00 UTC → lint-test → build and push `arranhs/browserfull` tagged `latest`, `develop`, commit SHA, and the combined version tag.
-- **Dependency update** (`.github/workflows/update.yaml`): nightly at 02:00 UTC → bumps `ARG AGENT_BROWSER_VERSION` (npm) and `ARG CLOAKBROWSER_VERSION` (Docker Hub) in the Dockerfile and commits to main. A `GITHUB_TOKEN` push does not trigger `main.yaml`, which is why the build runs an hour later. The cloakbrowser bump is capped below `0.7.0`: those images ship no Chromium binary — it is downloaded at runtime behind a license key — so the Dockerfile's `mv` of `/root/.cloakbrowser/chromium-*` fails.
+- **Dependency update** (`.github/workflows/update.yaml`): nightly at 02:00 UTC → bumps `ARG AGENT_BROWSER_VERSION` (npm) and `ARG CLEARCOTE_VERSION` (latest GitHub release tag, which Clearcote also publishes as a Docker Hub tag) in the Dockerfile and commits to main. A `GITHUB_TOKEN` push does not trigger `main.yaml`, which is why the build runs an hour later.
 - **Releases** (`.github/workflows/release.yaml`): manual workflow dispatch with semver bump; creates annotated git tag, GitHub release, then builds/pushes tagged `latest` + the new version tag.
-- **Image tags** (computed in `build-push.yaml`): `latest`, caller-supplied tags, and always `<app-version>-ab<agent-browser>-cb<cloakbrowser>` — e.g. `v0.3.0-ab0.43.0-cb0.6.5`. App version is the `app-version` input (release), else the tag on the built commit, else `dev-<short sha>`. Untagged commits never reuse an earlier tag, so a combination tag always names the code it contains.
+- **Image tags** (computed in `build-push.yaml`): `latest`, caller-supplied tags, and always `<app-version>-ab<agent-browser>-cc<clearcote>` — e.g. `v0.3.0-ab0.43.0-cc0.1.0-pre.25`. App version is the `app-version` input (release), else the tag on the built commit, else `dev-<short sha>`. Untagged commits never reuse an earlier tag, so a combination tag always names the code it contains.

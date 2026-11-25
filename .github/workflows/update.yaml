@@ -22,21 +22,16 @@ jobs:
       version-source: npm
       version-source-npm-package: agent-browser
 
-  cloakbrowser:
-    name: Update cloakbrowser
+  clearcote:
+    name: Update clearcote
     needs: [agent-browser]
     uses: ahobsonsayers/github-workflows/.github/workflows/docker-update-app-version.yaml@main
     secrets: inherit
     with:
-      app-name: cloakbrowser
+      app-name: clearcote
       dockerfile: Dockerfile
-      version-arg: CLOAKBROWSER_VERSION
+      version-arg: CLEARCOTE_VERSION
       version-source: command
-      # Cloakbrowser Capped below 0.7.0
-      # Newer images carry no binary and need a license key to download it
       version-source-command: >-
-        curl -s 'https://hub.docker.com/v2/repositories/cloakhq/cloakbrowser/tags?page_size=100&ordering=last_updated'
-        | jq -r '[.results[].name
-        | select(test("^0\\.[0-6]\\.[0-9]+$"))]
-        | sort_by(split(".") | map(tonumber))
-        | last'
+        curl -s https://api.github.com/repos/clearcotelabs/clearcote-browser/releases/latest
+        | jq -r '.tag_name | sub("^v"; "")'

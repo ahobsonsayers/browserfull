@@ -8,16 +8,18 @@ Connect tools like [browser-use](https://github.com/browser-use/browser-use), [a
 
 ### Run with Docker
 
-The Docker image is self-contained — it bundles `agent-browser`, [cloakbrowser](https://github.com/CloakHQ/CloakBrowser) (a stealth-patched Chromium), and all system libraries. No host dependencies beyond Docker.
+The Docker image is self-contained — it bundles `agent-browser`, [clearcote](https://github.com/clearcotelabs/clearcote-browser) (an open-source stealth Chromium), and all system libraries. No host dependencies beyond Docker.
+
+Clearcote is the open build: BSD-3, every patch public, no licence key, and no limit on concurrent sessions — so one container can serve many sessions at once. It is also a current Chromium, which a closed browser cannot promise once its vendor changes the licence.
 
 ```bash
 docker build -t browserfull .
 docker run --rm -p 8080:8080 browserfull
 ```
 
-agent-browser uses the bundled cloakbrowser chromium as its default browser. To use a different browser, override `BROWSERFULL_BROWSER_EXECUTABLE_PATH` at `docker run` time.
+agent-browser uses the bundled clearcote Chromium as its default browser. To use a different browser, override `BROWSERFULL_BROWSER_EXECUTABLE_PATH` at `docker run` time.
 
-Images on Docker Hub are tagged `latest`, `develop`, and `<app-version>-ab<agent-browser>-cb<cloakbrowser>` (e.g. `v0.3.0-ab0.43.0-cb0.6.5`). The two bundled binaries are pinned in the `Dockerfile` and bumped by a nightly workflow.
+Images on Docker Hub are tagged `latest`, `develop`, and `<app-version>-ab<agent-browser>-cc<clearcote>` (e.g. `v0.3.0-ab0.43.0-cc0.1.0-pre.25`). The two bundled binaries are pinned in the `Dockerfile` and bumped by a nightly workflow.
 
 ### Run locally
 

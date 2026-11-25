@@ -1,17 +1,11 @@
 ARG AGENT_BROWSER_VERSION=0.43.0
-# Cloakbrowser Capped below 0.7.0
-# Newer images carry no binary and need a license key to download it
-ARG CLOAKBROWSER_VERSION=0.6.5
+ARG CLEARCOTE_VERSION=0.1.0-pre.25
 
 FROM node:24-slim AS agent-browser
 ARG AGENT_BROWSER_VERSION
 RUN npm install -g --allow-scripts=agent-browser agent-browser@$AGENT_BROWSER_VERSION
 
-FROM cloakhq/cloakbrowser:$CLOAKBROWSER_VERSION AS cloakbrowser
-
-# Move cloakbrowser to a stable location
-RUN CLOAKBROWSER_DIR=$(find /root/.cloakbrowser -maxdepth 1 -type d -name "chromium-*" | head -1) && \
-    mv "$CLOAKBROWSER_DIR" /chromium
+FROM teamflatearth/clearcote:${CLEARCOTE_VERSION} AS clearcote
 
 # Builder Image
 FROM golang:1.24 AS builder
@@ -28,7 +22,7 @@ FROM debian:stable-slim
 ENV HOME=/browserfull
 
 ENV BROWSERFULL_ALLOWED_ORIGINS=*
-ENV BROWSERFULL_BROWSER_EXECUTABLE_PATH=/opt/cloakbrowser/chrome
+ENV BROWSERFULL_BROWSER_EXECUTABLE_PATH=/opt/clearcote/chrome
 ENV BROWSERFULL_DATA_DIR=/data
 
 # Install system dependencies
@@ -36,30 +30,32 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     tini \
-    # CloakBrowser dependencies
+    # Chromium runtime libraries and fonts, matching the clearcote image
+    fonts-ipafont-gothic \
     fonts-liberation \
     fonts-noto-color-emoji \
+    fonts-unifont \
+    fonts-wqy-zenhei \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
     libatspi2.0-0 \
-    libcairo-gobject2 \
     libcairo2 \
     libcups2 \
     libdbus-1-3 \
     libdrm2 \
+    libegl1 \
     libexpat1 \
     libffi8 \
     libfontconfig1 \
     libgbm1 \
-    libgdk-pixbuf-2.0-0 \
+    libgl1 \
+    libgl1-mesa-dri \
     libglib2.0-0 \
     libgnutls30 \
-    libgtk-3-0 \
     libnspr4 \
     libnss3 \
     libpango-1.0-0 \
-    libpangocairo-1.0-0 \
     libpcre2-8-0 \
     libselinux1 \
     libudev1 \
@@ -68,7 +64,6 @@ RUN apt-get update && \
     libxau6 \
     libxcb1 \
     libxcomposite1 \
-    libxcursor1 \
     libxdamage1 \
     libxext6 \
     libxfixes3 \
@@ -77,9 +72,7 @@ RUN apt-get update && \
     libxrandr2 \
     libxrender1 \
     libxshmfence1 \
-    libxss1 \
     libxtst6 \
-    libz1 \
     zlib1g && \
     rm -rf /var/lib/apt/lists/*
 
@@ -92,8 +85,7 @@ RUN useradd browser --uid 1000 --home-dir "$HOME" && \
 COPY --from=agent-browser --chown=browser:browser \
      /usr/local/bin/agent-browser /usr/local/bin/agent-browser
 
-# Install cloakbrowser
-COPY --from=cloakbrowser --chown=browser:browser /chromium/ /opt/cloakbrowser/
+COPY --from=clearcote --chown=browser:browser /opt/xdg-cache/clearcote/v*/browser/ /opt/clearcote/
 
 # Install browserfull
 COPY --from=builder --chown=browser:browser /app/bin/browserfull /usr/local/bin/browserfull
