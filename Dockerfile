@@ -1,17 +1,28 @@
 ARG AGENT_BROWSER_VERSION=0.43.0
-# Cloakbrowser Capped below 0.7.0
-# Newer images carry no binary and need a license key to download it
-ARG CLOAKBROWSER_VERSION=0.6.5
+ARG CLEARCOTE_RELEASE=v0.1.0-pre.25
+ARG CLEARCOTE_VERSION=151.0.7922.108
 
 FROM node:24-slim AS agent-browser
 ARG AGENT_BROWSER_VERSION
 RUN npm install -g --allow-scripts=agent-browser agent-browser@$AGENT_BROWSER_VERSION
 
-FROM cloakhq/cloakbrowser:$CLOAKBROWSER_VERSION AS cloakbrowser
+FROM debian:stable-slim AS clearcote
+ARG CLEARCOTE_RELEASE
+ARG CLEARCOTE_VERSION
 
-# Move cloakbrowser to a stable location
-RUN CLOAKBROWSER_DIR=$(find /root/.cloakbrowser -maxdepth 1 -type d -name "chromium-*" | head -1) && \
-    mv "$CLOAKBROWSER_DIR" /chromium
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl xz-utils && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN URL="https://github.com/clearcotelabs/clearcote-browser/releases/download/${CLEARCOTE_RELEASE}/clearcote-${CLEARCOTE_VERSION}-linux-x64.tar.xz" && \
+    FILE=$(basename "$URL") && \
+    cd /tmp && \
+    curl -fsSL -O "$URL" && \
+    curl -fsSL -O "$URL.sha256" && \
+    sha256sum -c "$FILE.sha256" && \
+    mkdir -p /clearcote && \
+    tar -xJf "$FILE" -C /clearcote && \
+    rm -f "$FILE" "$FILE.sha256"
 
 # Builder Image
 FROM golang:1.24 AS builder
@@ -28,7 +39,7 @@ FROM debian:stable-slim
 ENV HOME=/browserfull
 
 ENV BROWSERFULL_ALLOWED_ORIGINS=*
-ENV BROWSERFULL_BROWSER_EXECUTABLE_PATH=/opt/cloakbrowser/chrome
+ENV BROWSERFULL_BROWSER_EXECUTABLE_PATH=/opt/clearcote/chrome
 ENV BROWSERFULL_DATA_DIR=/data
 
 # Install system dependencies
@@ -36,7 +47,6 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     tini \
-    # CloakBrowser dependencies
     fonts-liberation \
     fonts-noto-color-emoji \
     libasound2 \
@@ -48,11 +58,13 @@ RUN apt-get update && \
     libcups2 \
     libdbus-1-3 \
     libdrm2 \
+    libegl1 \
     libexpat1 \
     libffi8 \
     libfontconfig1 \
     libgbm1 \
     libgdk-pixbuf-2.0-0 \
+    libgl1-mesa-dri \
     libglib2.0-0 \
     libgnutls30 \
     libgtk-3-0 \
@@ -92,8 +104,7 @@ RUN useradd browser --uid 1000 --home-dir "$HOME" && \
 COPY --from=agent-browser --chown=browser:browser \
      /usr/local/bin/agent-browser /usr/local/bin/agent-browser
 
-# Install cloakbrowser
-COPY --from=cloakbrowser --chown=browser:browser /chromium/ /opt/cloakbrowser/
+COPY --from=clearcote --chown=browser:browser /clearcote/ /opt/clearcote/
 
 # Install browserfull
 COPY --from=builder --chown=browser:browser /app/bin/browserfull /usr/local/bin/browserfull

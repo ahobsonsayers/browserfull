@@ -46,7 +46,7 @@ jobs:
         id: get-tags
         run: |
           AGENT_BROWSER_VERSION=$(grep '^ARG AGENT_BROWSER_VERSION=' Dockerfile | cut -d '=' -f2)
-          CLOAKBROWSER_VERSION=$(grep '^ARG CLOAKBROWSER_VERSION=' Dockerfile | cut -d '=' -f2)
+          CLEARCOTE_VERSION=$(grep '^ARG CLEARCOTE_VERSION=' Dockerfile | cut -d '=' -f2)
           APP_VERSION="$INPUT_APP_VERSION"
           if [ -z "$APP_VERSION" ]; then
             APP_VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "dev-$(git rev-parse --short HEAD)")
@@ -55,13 +55,13 @@ jobs:
           {
             echo "tags<<EOF"
             echo "$INPUT_TAGS" | tr ',' '\n'
-            echo "${APP_VERSION}-ab${AGENT_BROWSER_VERSION}-cb${CLOAKBROWSER_VERSION}"
+            echo "${APP_VERSION}-ab${AGENT_BROWSER_VERSION}-cc${CLEARCOTE_VERSION}"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
           echo "App version: $APP_VERSION"
           echo "agent-browser: $AGENT_BROWSER_VERSION"
-          echo "cloakbrowser: $CLOAKBROWSER_VERSION"
+          echo "clearcote: $CLEARCOTE_VERSION"
         env:
           INPUT_TAGS: ${{ inputs.tags }}
           INPUT_APP_VERSION: ${{ inputs.app-version }}
