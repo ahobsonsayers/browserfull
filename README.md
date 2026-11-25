@@ -19,7 +19,7 @@ docker run --rm -p 8080:8080 browserfull
 
 agent-browser uses the bundled clearcote Chromium as its default browser. To use a different browser, override `BROWSERFULL_BROWSER_EXECUTABLE_PATH` at `docker run` time.
 
-Images on Docker Hub are tagged `latest`, `develop`, and `<app-version>-ab<agent-browser>-cc<clearcote>` (e.g. `v0.3.0-ab0.43.0-cc151.0.7922.108`). The two bundled binaries are pinned in the `Dockerfile` and bumped by a nightly workflow.
+Images on Docker Hub are tagged `latest`, `develop`, and `<app-version>-ab<agent-browser>-cc<clearcote>` (e.g. `v0.3.0-ab0.43.0-cc0.1.0-pre.25`). The two bundled binaries are pinned in the `Dockerfile` and bumped by a nightly workflow.
 
 ### Run locally
 

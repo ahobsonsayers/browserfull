@@ -1,28 +1,11 @@
 ARG AGENT_BROWSER_VERSION=0.43.0
-ARG CLEARCOTE_RELEASE=v0.1.0-pre.25
-ARG CLEARCOTE_VERSION=151.0.7922.108
+ARG CLEARCOTE_VERSION=0.1.0-pre.25
 
 FROM node:24-slim AS agent-browser
 ARG AGENT_BROWSER_VERSION
 RUN npm install -g --allow-scripts=agent-browser agent-browser@$AGENT_BROWSER_VERSION
 
-FROM debian:stable-slim AS clearcote
-ARG CLEARCOTE_RELEASE
-ARG CLEARCOTE_VERSION
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates curl xz-utils && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN URL="https://github.com/clearcotelabs/clearcote-browser/releases/download/${CLEARCOTE_RELEASE}/clearcote-${CLEARCOTE_VERSION}-linux-x64.tar.xz" && \
-    FILE=$(basename "$URL") && \
-    cd /tmp && \
-    curl -fsSL -O "$URL" && \
-    curl -fsSL -O "$URL.sha256" && \
-    sha256sum -c "$FILE.sha256" && \
-    mkdir -p /clearcote && \
-    tar -xJf "$FILE" -C /clearcote && \
-    rm -f "$FILE" "$FILE.sha256"
+FROM teamflatearth/clearcote:${CLEARCOTE_VERSION} AS clearcote
 
 # Builder Image
 FROM golang:1.24 AS builder
@@ -104,7 +87,7 @@ RUN useradd browser --uid 1000 --home-dir "$HOME" && \
 COPY --from=agent-browser --chown=browser:browser \
      /usr/local/bin/agent-browser /usr/local/bin/agent-browser
 
-COPY --from=clearcote --chown=browser:browser /clearcote/ /opt/clearcote/
+COPY --from=clearcote --chown=browser:browser /opt/xdg-cache/clearcote/v*/browser/ /opt/clearcote/
 
 # Install browserfull
 COPY --from=builder --chown=browser:browser /app/bin/browserfull /usr/local/bin/browserfull

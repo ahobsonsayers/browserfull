@@ -22,8 +22,8 @@ jobs:
       version-source: npm
       version-source-npm-package: agent-browser
 
-  clearcote-version:
-    name: Update clearcote (Chromium)
+  clearcote:
+    name: Update clearcote
     needs: [agent-browser]
     uses: ahobsonsayers/github-workflows/.github/workflows/docker-update-app-version.yaml@main
     secrets: inherit
@@ -34,18 +34,4 @@ jobs:
       version-source: command
       version-source-command: >-
         curl -s https://api.github.com/repos/clearcotelabs/clearcote-browser/releases/latest
-        | jq -r '.assets[].name
-        | select(endswith("-linux-x64.tar.xz"))
-        | capture("clearcote-(?<v>[0-9.]+)-linux").v'
-
-  clearcote-release:
-    name: Update clearcote (release)
-    needs: [clearcote-version]
-    uses: ahobsonsayers/github-workflows/.github/workflows/docker-update-app-version.yaml@main
-    secrets: inherit
-    with:
-      app-name: clearcote release
-      dockerfile: Dockerfile
-      version-arg: CLEARCOTE_RELEASE
-      version-source: github
-      version-source-github-repo: clearcotelabs/clearcote-browser
+        | jq -r '.tag_name | sub("^v"; "")'
