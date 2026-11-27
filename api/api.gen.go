@@ -21,6 +21,9 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Extensions defines model for Extensions.
+type Extensions = []string
+
 // Headed defines model for Headed.
 type Headed = bool
 
@@ -28,12 +31,18 @@ type Headed = bool
 type ConnectDefaultSessionParams struct {
 	// Headed Run the session with a visible window instead of headless. Defaults to BROWSERFULL_DEFAULT_HEADED. Only takes effect when the session launches; a session that is already running keeps the mode it started with.
 	Headed *Headed `form:"headed,omitempty" json:"headed,omitempty"`
+
+	// Extensions Comma-separated names of extensions in the data dir's `extensions` folder, loaded at launch in addition to BROWSERFULL_DEFAULT_EXTENSIONS. Only takes effect when the session launches; a session that is already running keeps the extensions it started with.
+	Extensions *Extensions `form:"extensions,omitempty" json:"extensions,omitempty"`
 }
 
 // ConnectNamedSessionParams defines parameters for ConnectNamedSession.
 type ConnectNamedSessionParams struct {
 	// Headed Run the session with a visible window instead of headless. Defaults to BROWSERFULL_DEFAULT_HEADED. Only takes effect when the session launches; a session that is already running keeps the mode it started with.
 	Headed *Headed `form:"headed,omitempty" json:"headed,omitempty"`
+
+	// Extensions Comma-separated names of extensions in the data dir's `extensions` folder, loaded at launch in addition to BROWSERFULL_DEFAULT_EXTENSIONS. Only takes effect when the session launches; a session that is already running keeps the extensions it started with.
+	Extensions *Extensions `form:"extensions,omitempty" json:"extensions,omitempty"`
 }
 
 // ServerInterface represents all server handlers.
@@ -120,6 +129,19 @@ func (siw *ServerInterfaceWrapper) ConnectDefaultSession(w http.ResponseWriter, 
 		return
 	}
 
+	// ------------- Optional query parameter "extensions" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "extensions", r.URL.Query(), &params.Extensions, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "extensions"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "extensions", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ConnectDefaultSession(w, r, params)
 	}))
@@ -158,6 +180,19 @@ func (siw *ServerInterfaceWrapper) ConnectNamedSession(w http.ResponseWriter, r 
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "headed"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "headed", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "extensions" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "extensions", r.URL.Query(), &params.Extensions, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "extensions"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "extensions", Err: err})
 		}
 		return
 	}
@@ -624,21 +659,22 @@ func (sh *strictHandler) CloseSession(w http.ResponseWriter, r *http.Request, se
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"zFXdb9s2EP9XDlyBtpgkO8uAYe6TG6dIgWAtkgUF1mXJWTxbnCVS5Z3seob/94GUbfmj2UuAoW8SP39f",
-	"d1yp3FW1s2SF1WClavRYkZCPf1eEmnT40sS5N7UYZ9VA3TQWpCBgYjbOwsJIAQhzw2ZcEiyM1W4BxrIQ",
-	"anATKAh1ScwZjGiCTSkM4uDtzYdPt5c37+6urx9Gl++Gd9e/P1xdDkeXoww+2HIJgjNioMmEcoFFQYe3",
-	"ltjYvCB+A7gbkwIFDAOWnlAvwTfWGjuFGVHNcXflNIERYEEvpCP27E+rEmUCtS8N+aVKlMWK1EAVrQKJ",
-	"4rygCoMUsqzDzNi5ktCq9Xq9Dnsn7lSnt94tmHyKnGLK5Ocmp8EON4zbaQZnQVOFVsPcIOCUrKSbSYAw",
-	"TF9rx0EKzIst15cMF6OP8InGty6fkQBZXTtjpWUjRkrqMEyasoThx/cqUXPy3OLrZ2dZX60T5WqyWBs1",
-	"UOdZP+urRNUoRcxAL3fWUi7he0pySvKunnrUFB3FPTi1d18N6XbYo9WuKpdp0FUfUdgCh1dXaGaNRXE+",
-	"AcqmGTwuDNfLVDcs6dn5+S+PrzMV4XoM17/XaqAuWoCbZN22R0cKXZY/r9QLTxM1UD/0usT3uiW9TdbX",
-	"94nyxLWzTJH/Wf/slHPHsmnZAzd5TsyTplQhD9xUFfplhy7IEOKnW5Rb73fBPbTy1S4jZgLWyTbHr+Ph",
-	"W0t6q83u37Ci9XMMCsj+y5k3XWj3K/AQ3JPOBHj6SV8OwYa1oWOEa440yrY1GrLZleieBip496UxPjQt",
-	"8Q3t122NIuTD/r8+Y/rPMP2jn/76kN7/+CJUS1vULN7YaRD5e8gLbjx5VlYKwlKKvXAcWnQVpy8Kymfq",
-	"iMlP/f4pk9u2i4Ue2568PMLfHgh5PDEi2MDmJwM6zMXMu1QF0pwAMniqXWzS4yU8HrbF3SNgWB5Pk3dt",
-	"eNsJ+AleubNCNsLBui5NHnf3/uaAabUXHCNU8V7n34Zklxr0HoMM6+RErD1GRzoFhIAt82NS3fqdeKe1",
-	"rqkkoVM1L8r4VOzV6cvdUxPflyMl87D+GxLGc55ftSHI8Yr/s3zvTyz/+VtRbgFGdPq4DMMg4DGb+Nz/",
-	"GwAA//8=",
+	"1FZtb9u2E/8qB/4LpMVfkp1lwDD3VZq4SIAgKeIGHdZl8UU8WVwkUuVRcTTD330gZVt+XF8EG7B3Fh+O",
+	"vycePROpKSujSTsWg5mo0GJJjmz4Gr440qyMDl+SOLWqcspoMRBnpiwxZvI7HEnQWBKDyYBWm0BpcDmB",
+	"RIcglT1iGHezY8hMIclGUBiUJAEdFFjrNPf7UErlTwJn4MPtzZfR8Pbj3dXVw/nw4+nd1eeH4S+fh9ej",
+	"y5vrUQI3umjA4RMxUJZR6mCaU3s0E/vDFoWJ3wOuxlyODhQDFpZQNmBrrZWewBNRxWH3OhUH7NB6plPl",
+	"8uQ3LSJBL1VhJIlBhgVTJJQX5ltNthGR8IKIgehqiEhwmlOJXkzlqFwo7hxZv/H3rxj/eRr/2o9/Th7i",
+	"+/+/EZFwTeWLsLNKT8R8NYDWYuO/2TWFH8iMLf33BXktd+26rTcF8SQA4VmxeiwIpkpLMwWl2RFKb2NO",
+	"KAtiTuCcMqwLx4esuBieng/P/0EbSiNpvwH7BM9bBdbFXoj2aExBqMV8Pp/7vZnZ1emDNVMmGyPHPt32",
+	"WaU0WOGGx3aawWiQVKKW8KwQcELaxYtJAD9ML5VhYiBM8yXXI4az80/whR5HJn0iB6RlZZR2LRunXEEd",
+	"hqwuCjj9dCki8UyWW3z95Djpe6NNRRorJQbiJOknfRH5JOUhUr3UaE2p878n5HZJ3lUTi5KCo7gGp7Lm",
+	"RZFshy1qacqiib2ucovCEji8vUD1VGt0xkZAySSB8VRx1cSyZhcfn5z8NH6XiADXoj/+UobmEQAukjVq",
+	"S4too/18nYk3ljIxEP/rdU2q1y3pLbI+j767cq2Rze8jYYkro5mCWsf9412FOk3qVivgOk2JOasL4dPD",
+	"dVmibTouXrTQ7FpOy6SsYr5p/NtVolQG2rhl6t+F4ksDe7PF7mssaf4aOz2yv/PxfRfx9fu6Ce6gjx6e",
+	"POjiJli/1vcXf8yWRsnyRvskdxd6TQPhvftWK+tbnLM1rd/yvZ30QCOdR/+9dOHCwVclKycsXL4WpU1D",
+	"L8L0WU7pk9hi8kO/v8tk1HZI37/bys0W/rYgpKFiQLCAzQfjfJo69dxl0JPmCJDBUmXCA/DYwHiz5a4e",
+	"GMVuvJvTK8XLLsMHeKVGO9IBDlZVodKwu/cHe0yzfS/3d95mT3ZbrDVGWzp5hIAt821S3fqVeLudQVJB",
+	"jvb8TyvCM7R2q49Wz1h4u7aUTP36PRKGOq+/4z7I4Yh/87Lf71j+474otwADOrl9Df0g4Dab8FfirwEA",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -46,7 +46,8 @@ func New(cfg *config.Config) (*Client, error) {
 }
 
 type LaunchOptions struct {
-	Headed bool
+	Headed     bool
+	Extensions []string
 }
 
 func (c *Client) Launch(sessionName string, opts LaunchOptions) (*SessionInfo, error) {
@@ -59,6 +60,10 @@ func (c *Client) Launch(sessionName string, opts LaunchOptions) (*SessionInfo, e
 	args := []string{"open", "about:blank", "--session", sessionName, "--json"}
 	if opts.Headed {
 		args = append(args, "--headed")
+	}
+
+	for _, extension := range opts.Extensions {
+		args = append(args, "--extension", extension)
 	}
 
 	_, err := c.runCmd(args...)

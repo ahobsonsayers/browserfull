@@ -11,6 +11,7 @@ type Server struct {
 	agentBrowser   *agentbrowser.Client
 	allowedOrigins []string
 	defaultHeaded  bool
+	cfg            *config.Config
 }
 
 var _ StrictServerInterface = Server{}
@@ -31,6 +32,7 @@ func NewServer(agentBrowser *agentbrowser.Client, cfg *config.Config) ServerInte
 		agentBrowser:   agentBrowser,
 		allowedOrigins: cfg.AllowedOrigins,
 		defaultHeaded:  cfg.Headed,
+		cfg:            cfg,
 	}
 
 	// Convert to none strict server

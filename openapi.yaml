@@ -20,6 +20,7 @@ paths:
       operationId: connectDefaultSession
       parameters:
         - $ref: "#/components/parameters/Headed"
+        - $ref: "#/components/parameters/Extensions"
       responses:
         "101":
           description: WebSocket upgrade successful
@@ -37,6 +38,7 @@ paths:
             type: string
             pattern: "^[a-zA-Z0-9_-]+$"
         - $ref: "#/components/parameters/Headed"
+        - $ref: "#/components/parameters/Extensions"
       responses:
         "101":
           description: WebSocket upgrade successful
@@ -82,3 +84,19 @@ components:
         that is already running keeps the mode it started with.
       schema:
         type: boolean
+    Extensions:
+      name: extensions
+      in: query
+      required: false
+      description: >
+        Comma-separated names of extensions in the data dir's `extensions` folder,
+        loaded at launch in addition to BROWSERFULL_DEFAULT_EXTENSIONS. Only takes
+        effect when the session launches; a session that is already running keeps
+        the extensions it started with.
+      style: form
+      explode: false
+      schema:
+        type: array
+        items:
+          type: string
+          pattern: "^[a-zA-Z0-9._-]+$"
