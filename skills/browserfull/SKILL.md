@@ -46,6 +46,7 @@ curl -s -X DELETE "$BROWSERFULL_API_URL/sessions/my-task"   # close one (204)
 
 - CDP URL: `ws://host:port/connect/{sessionName}` (`wss://` if the server sits behind https); `sessionName` must match `^[a-zA-Z0-9_-]+$`
 - Sessions are headed on the server's virtual display by default (headless Chrome is detectable). Add `?headed=false` to the connect URL for a headless session; it applies only when the session launches
+- Add `?extensions=name1,name2` to load extensions the server has in its data dir's `extensions/` folder, in addition to the server defaults; also launch-time only
 - New name → a browser launches on demand; same name → reconnects to the existing session
 - Reuse an existing session with a suitable name before opening a new one
 - **Close only via `DELETE /sessions/{name}` — never a tool-level close.** A CLI close does not remove the session server-side: the name still shows in `/sessions`. DELETE is the only call that fully stops the session and removes it from the list
