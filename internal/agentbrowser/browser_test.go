@@ -26,7 +26,7 @@ func TestAgentBrowserLaunch(t *testing.T) {
 
 	sessionName := fmt.Sprintf("%d", time.Now().UnixNano())
 
-	info, err := browser.Launch(sessionName)
+	info, err := browser.Launch(sessionName, LaunchOptions{})
 	require.NoError(t, err)
 	require.NotNil(t, info)
 

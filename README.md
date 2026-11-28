@@ -19,6 +19,8 @@ docker run --rm -p 8080:8080 browserfull
 
 agent-browser uses the bundled clearcote Chromium as its default browser. To use a different browser, override `BROWSERFULL_BROWSER_EXECUTABLE_PATH` at `docker run` time.
 
+Sessions run **headed** on a virtual display, because headless Chrome is itself a detection signal. The image starts Xvfb and sets `BROWSERFULL_DEFAULT_HEADED=true`. Pass `?headed=false` on a connect URL for a headless session, or set `BROWSERFULL_DEFAULT_HEADED=false` to make headless the default.
+
 Images on Docker Hub are tagged `latest`, `develop`, and `<app-version>-ab<agent-browser>-cc<clearcote>` (e.g. `v0.3.0-ab0.43.0-cc0.1.0-pre.25`). The two bundled binaries are pinned in the `Dockerfile` and bumped by a nightly workflow.
 
 ### Run locally
@@ -61,6 +63,53 @@ agent-browser snapshot
 
 `sessionName` must match `^[a-zA-Z0-9_-]+$`.
 
+Both connect endpoints take an optional `?headed=true|false`, which overrides `BROWSERFULL_DEFAULT_HEADED`. It applies when the session launches; a session that is already running keeps its mode.
+
+Both connect endpoints also take an optional `?extensions=name1,name2`. The names are looked up in the extensions folder (see below) and added to whatever `BROWSERFULL_DEFAULT_EXTENSIONS` loads.
+
+## Extensions
+
+Sessions can load Chrome extensions. Extensions live **unpacked** in `<data dir>/extensions/<name>/`, the folder that contains `manifest.json`:
+
+```
+~/.browserfull/extensions/
+├── ublock-origin/manifest.json
+└── grammarly/manifest.json
+```
+
+`BROWSERFULL_DEFAULT_EXTENSIONS` loads extensions into every session; `?extensions=` adds more for one session. Both are resolved against the extensions folder, so a client can only name extensions the server already has.
+
+With Docker, mount your folder at the container's data dir:
+
+```bash
+docker run --rm -p 8080:8080 -v "$PWD/extensions:/data/extensions" browserfull
+```
+
+Like `?headed`, extensions are launch-time options: a running session keeps what it started with.
+
+### Getting an extension
+
+The Chrome Web Store no longer serves `.crx` files for direct download, and third-party mirrors are unreliable. The reliable route is to take the unpacked extension from a Chrome profile that already has it installed:
+
+```bash
+# Linux Chrome; Chromium uses ~/.config/chromium/Default/Extensions
+cp -r ~/.config/google-chrome/Default/Extensions/<extension-id>/<version> \
+  ~/.browserfull/extensions/<name>
+```
+
+The extension ID and version are the folder names under `Default/Extensions/`; copy the folder that contains `manifest.json`. On macOS the profile is under `~/Library/Application Support/Google/Chrome/Default/Extensions/`.
+
+If you already have a `.crx`, unpack it:
+
+```bash
+mkdir -p ~/.browserfull/extensions/<name>
+unzip -oq extension.crx -d ~/.browserfull/extensions/<name>
+```
+
+`unzip` warns "extra bytes at beginning" and exits 1 because of the CRX header; the files still extract. Check that `<name>/manifest.json` exists.
+
+Extensions need a local Chromium-based browser, so they do not work with remote CDP targets or Lightpanda.
+
 ## Configuration
 
 Configured via environment variables:
@@ -71,6 +120,8 @@ Configured via environment variables:
 | `BROWSERFULL_DATA_DIR`                | `$HOME/.browserfull` | Session metadata + agent-browser config dir                                      |
 | `BROWSERFULL_ALLOWED_ORIGINS`         | _none_               | Comma-separated allowed WebSocket origin hostnames; `*` allows all               |
 | `BROWSERFULL_BROWSER_EXECUTABLE_PATH` | _none_               | Browser executable path passed to agent-browser; overrides Chrome auto-discovery |
+| `BROWSERFULL_DEFAULT_HEADED`         | `false`              | Launch sessions with a visible window (needs `DISPLAY`); the Docker image sets `true` |
+| `BROWSERFULL_DEFAULT_EXTENSIONS`      | _none_               | Comma-separated extension folder names under `<data dir>/extensions`, loaded every session |
 
 ## How it works
 

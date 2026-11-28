@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -20,14 +21,38 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Extensions defines model for Extensions.
+type Extensions = []string
+
+// Headed defines model for Headed.
+type Headed = bool
+
+// ConnectDefaultSessionParams defines parameters for ConnectDefaultSession.
+type ConnectDefaultSessionParams struct {
+	// Headed Run the session with a visible window instead of headless. Defaults to BROWSERFULL_DEFAULT_HEADED. Only takes effect when the session launches; a session that is already running keeps the mode it started with.
+	Headed *Headed `form:"headed,omitempty" json:"headed,omitempty"`
+
+	// Extensions Comma-separated names of extensions in the data dir's `extensions` folder, loaded at launch in addition to BROWSERFULL_DEFAULT_EXTENSIONS. Only takes effect when the session launches; a session that is already running keeps the extensions it started with.
+	Extensions *Extensions `form:"extensions,omitempty" json:"extensions,omitempty"`
+}
+
+// ConnectNamedSessionParams defines parameters for ConnectNamedSession.
+type ConnectNamedSessionParams struct {
+	// Headed Run the session with a visible window instead of headless. Defaults to BROWSERFULL_DEFAULT_HEADED. Only takes effect when the session launches; a session that is already running keeps the mode it started with.
+	Headed *Headed `form:"headed,omitempty" json:"headed,omitempty"`
+
+	// Extensions Comma-separated names of extensions in the data dir's `extensions` folder, loaded at launch in addition to BROWSERFULL_DEFAULT_EXTENSIONS. Only takes effect when the session launches; a session that is already running keeps the extensions it started with.
+	Extensions *Extensions `form:"extensions,omitempty" json:"extensions,omitempty"`
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Connect to the default browser session CDP WebSocket (launches if not running)
 	// (GET /connect)
-	ConnectDefaultSession(w http.ResponseWriter, r *http.Request)
+	ConnectDefaultSession(w http.ResponseWriter, r *http.Request, params ConnectDefaultSessionParams)
 	// Connect to a named browser session CDP WebSocket (launches if not running)
 	// (GET /connect/{sessionName})
-	ConnectNamedSession(w http.ResponseWriter, r *http.Request, sessionName string)
+	ConnectNamedSession(w http.ResponseWriter, r *http.Request, sessionName string, params ConnectNamedSessionParams)
 	// Health check
 	// (GET /health)
 	HealthCheck(w http.ResponseWriter, r *http.Request)
@@ -45,13 +70,13 @@ type Unimplemented struct{}
 
 // Connect to the default browser session CDP WebSocket (launches if not running)
 // (GET /connect)
-func (_ Unimplemented) ConnectDefaultSession(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ConnectDefaultSession(w http.ResponseWriter, r *http.Request, params ConnectDefaultSessionParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Connect to a named browser session CDP WebSocket (launches if not running)
 // (GET /connect/{sessionName})
-func (_ Unimplemented) ConnectNamedSession(w http.ResponseWriter, r *http.Request, sessionName string) {
+func (_ Unimplemented) ConnectNamedSession(w http.ResponseWriter, r *http.Request, sessionName string, params ConnectNamedSessionParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -85,8 +110,40 @@ type MiddlewareFunc func(http.Handler) http.Handler
 // ConnectDefaultSession operation middleware
 func (siw *ServerInterfaceWrapper) ConnectDefaultSession(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ConnectDefaultSessionParams
+
+	// ------------- Optional query parameter "headed" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "headed", r.URL.Query(), &params.Headed, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "headed"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "headed", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "extensions" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "extensions", r.URL.Query(), &params.Extensions, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "extensions"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "extensions", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ConnectDefaultSession(w, r)
+		siw.Handler.ConnectDefaultSession(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -111,8 +168,37 @@ func (siw *ServerInterfaceWrapper) ConnectNamedSession(w http.ResponseWriter, r 
 		return
 	}
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ConnectNamedSessionParams
+
+	// ------------- Optional query parameter "headed" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "headed", r.URL.Query(), &params.Headed, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "headed"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "headed", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "extensions" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "extensions", r.URL.Query(), &params.Extensions, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "extensions"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "extensions", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ConnectNamedSession(w, r, sessionName)
+		siw.Handler.ConnectNamedSession(w, r, sessionName, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -309,6 +395,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 }
 
 type ConnectDefaultSessionRequestObject struct {
+	Params ConnectDefaultSessionParams
 }
 
 type ConnectDefaultSessionResponseObject interface {
@@ -325,6 +412,7 @@ func (response ConnectDefaultSession101Response) VisitConnectDefaultSessionRespo
 
 type ConnectNamedSessionRequestObject struct {
 	SessionName string `json:"sessionName"`
+	Params      ConnectNamedSessionParams
 }
 
 type ConnectNamedSessionResponseObject interface {
@@ -440,8 +528,10 @@ type strictHandler struct {
 }
 
 // ConnectDefaultSession operation middleware
-func (sh *strictHandler) ConnectDefaultSession(w http.ResponseWriter, r *http.Request) {
+func (sh *strictHandler) ConnectDefaultSession(w http.ResponseWriter, r *http.Request, params ConnectDefaultSessionParams) {
 	var request ConnectDefaultSessionRequestObject
+
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.ConnectDefaultSession(ctx, request.(ConnectDefaultSessionRequestObject))
@@ -464,10 +554,11 @@ func (sh *strictHandler) ConnectDefaultSession(w http.ResponseWriter, r *http.Re
 }
 
 // ConnectNamedSession operation middleware
-func (sh *strictHandler) ConnectNamedSession(w http.ResponseWriter, r *http.Request, sessionName string) {
+func (sh *strictHandler) ConnectNamedSession(w http.ResponseWriter, r *http.Request, sessionName string, params ConnectNamedSessionParams) {
 	var request ConnectNamedSessionRequestObject
 
 	request.SessionName = sessionName
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.ConnectNamedSession(ctx, request.(ConnectNamedSessionRequestObject))
@@ -568,18 +659,22 @@ func (sh *strictHandler) CloseSession(w http.ResponseWriter, r *http.Request, se
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"xJVfa9w6EMW/yiAuJOHajje5cKn7lG4eEiglEEqhadqdyLNrNbakauRNtou/e5G8/+JN+hJK3xZLGv3O",
-	"mTPapVB6akSxFCWxdMp6ZbQoxDtnHphcipxiyuTmSlIBNbZaVsRw1y8zGA0lNahLmCsEnJH26WoRIHym",
-	"R2uYGAhlBUzMyugDhvH5FXyiu2sj78kD6dIapX32RYtEeOVr2jJM27qGs6tLkYg5Oe758myU5aJLhLGk",
-	"0SpRiNMsz3KRCIu+4qDoWBqtSfrwe0Z+X+RHO3NYEoM3gDs41plHRWX/2aEuTVMvUo0NlQMJa3A4vEB1",
-	"32r0xiVA2SyDyYNiu0jLln06Oj39f3KUiYjrMFx/WYpCjHvAc5piW/vrvrRIhCO2RjNFGaN8tI++hW17",
-	"EcCtlMQ8bWvRdYngtmnQLbaXBDW+Iij7y9YtXAsadORw02o1BW08uFZrpWdHsfja2ePl6vQHbKh7jc+B",
-	"7HcGv91mL2xdQz+Fe9HggFdu7bXosCFPjkVxM4QNe8FM4zUDj0J9FfaEiIlEBGBRiB0PYu9+tMpRKQrv",
-	"WkoEy4oaDKZY9J5cOP/1BtOfZ+nnPH3zLb39958Q+oWNtbxTeia67vbPpQBXTr8qARVh7audlj81/iIu",
-	"jyuS98M8n+T5vpLr/okBxdBXXgz4+4IgY8VIsMLmF2N3Jr2ab7MSRHMCyODIGueDAwuYPH2z1ptrxX6y",
-	"n6f3itdjyi/okkZ70hEHra2VjKePv3NgWu7EQXlq4sFB6zdZQOcw2NAle2btKBr4FAgBe+VDUdv9G/P2",
-	"J7ikmjztuzmu4zu+M30Hm/+B+PgPnJRh/zMWxjqvn8UQ5HjF3xzKk/y/56LcA0a6cjiG4SPgUE3ocvdr",
-	"AA==",
+	"1FZtb9u2E/8qB/4LpMVfkp1lwDD3VZq4SIAgKeIGHdZl8UU8WVwkUuVRcTTD330gZVt+XF8EG7B3Fh+O",
+	"vycePROpKSujSTsWg5mo0GJJjmz4Gr440qyMDl+SOLWqcspoMRBnpiwxZvI7HEnQWBKDyYBWm0BpcDmB",
+	"RIcglT1iGHezY8hMIclGUBiUJAEdFFjrNPf7UErlTwJn4MPtzZfR8Pbj3dXVw/nw4+nd1eeH4S+fh9ej",
+	"y5vrUQI3umjA4RMxUJZR6mCaU3s0E/vDFoWJ3wOuxlyODhQDFpZQNmBrrZWewBNRxWH3OhUH7NB6plPl",
+	"8uQ3LSJBL1VhJIlBhgVTJJQX5ltNthGR8IKIgehqiEhwmlOJXkzlqFwo7hxZv/H3rxj/eRr/2o9/Th7i",
+	"+/+/EZFwTeWLsLNKT8R8NYDWYuO/2TWFH8iMLf33BXktd+26rTcF8SQA4VmxeiwIpkpLMwWl2RFKb2NO",
+	"KAtiTuCcMqwLx4esuBieng/P/0EbSiNpvwH7BM9bBdbFXoj2aExBqMV8Pp/7vZnZ1emDNVMmGyPHPt32",
+	"WaU0WOGGx3aawWiQVKKW8KwQcELaxYtJAD9ML5VhYiBM8yXXI4az80/whR5HJn0iB6RlZZR2LRunXEEd",
+	"hqwuCjj9dCki8UyWW3z95Djpe6NNRRorJQbiJOknfRH5JOUhUr3UaE2p878n5HZJ3lUTi5KCo7gGp7Lm",
+	"RZFshy1qacqiib2ucovCEji8vUD1VGt0xkZAySSB8VRx1cSyZhcfn5z8NH6XiADXoj/+UobmEQAukjVq",
+	"S4too/18nYk3ljIxEP/rdU2q1y3pLbI+j767cq2Rze8jYYkro5mCWsf9412FOk3qVivgOk2JOasL4dPD",
+	"dVmibTouXrTQ7FpOy6SsYr5p/NtVolQG2rhl6t+F4ksDe7PF7mssaf4aOz2yv/PxfRfx9fu6Ce6gjx6e",
+	"POjiJli/1vcXf8yWRsnyRvskdxd6TQPhvftWK+tbnLM1rd/yvZ30QCOdR/+9dOHCwVclKycsXL4WpU1D",
+	"L8L0WU7pk9hi8kO/v8tk1HZI37/bys0W/rYgpKFiQLCAzQfjfJo69dxl0JPmCJDBUmXCA/DYwHiz5a4e",
+	"GMVuvJvTK8XLLsMHeKVGO9IBDlZVodKwu/cHe0yzfS/3d95mT3ZbrDVGWzp5hIAt821S3fqVeLudQVJB",
+	"jvb8TyvCM7R2q49Wz1h4u7aUTP36PRKGOq+/4z7I4Yh/87Lf71j+474otwADOrl9Df0g4Dab8FfirwEA",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

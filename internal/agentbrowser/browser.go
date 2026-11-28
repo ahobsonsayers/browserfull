@@ -2,6 +2,7 @@ package agentbrowser
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -44,12 +45,28 @@ func New(cfg *config.Config) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) Launch(sessionName string) (*SessionInfo, error) {
-	_, err := c.runCmd(
-		"open", "about:blank",
-		"--session", sessionName,
-		"--json",
-	)
+type LaunchOptions struct {
+	Headed     bool
+	Extensions []string
+}
+
+func (c *Client) Launch(sessionName string, opts LaunchOptions) (*SessionInfo, error) {
+	// A headed browser needs an X display; without one Chrome refuses to start
+	if opts.Headed && os.Getenv("DISPLAY") == "" {
+		log.Print("headed requested but DISPLAY is not set, launching headless")
+		opts.Headed = false
+	}
+
+	args := []string{"open", "about:blank", "--session", sessionName, "--json"}
+	if opts.Headed {
+		args = append(args, "--headed")
+	}
+
+	for _, extension := range opts.Extensions {
+		args = append(args, "--extension", extension)
+	}
+
+	_, err := c.runCmd(args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to launch browser: %w", err)
 	}

@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -109,4 +110,43 @@ func TestLoad_AllowedOrigins(t *testing.T) {
 		require.NotNil(t, cfg)
 		assert.Equal(t, []string{"127.0.0.1", "10.0.0.5"}, cfg.AllowedOrigins)
 	})
+}
+
+func TestExtensionPath(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+
+	ublockDir := filepath.Join(tmpDir, "extensions", "ublock")
+	require.NoError(t, os.MkdirAll(ublockDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(ublockDir, "manifest.json"), []byte("{}"), 0o644))
+	require.NoError(t, os.MkdirAll(filepath.Join(tmpDir, "extensions", "nomanifest"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "extensions", "file"), []byte("{}"), 0o644))
+
+	cfg := Config{Port: 8080, DataDir: tmpDir}
+
+	path, err := cfg.ExtensionPath("ublock")
+	require.NoError(t, err)
+	assert.Equal(t, ublockDir, path)
+
+	for _, name := range []string{"", ".", "..", "missing", "nomanifest", "file", "../ublock", "a/b"} {
+		_, err = cfg.ExtensionPath(name)
+		assert.Error(t, err, name)
+	}
+}
+
+func TestValidate_Extensions(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+
+	ublockDir := filepath.Join(tmpDir, "extensions", "ublock")
+	require.NoError(t, os.MkdirAll(ublockDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(ublockDir, "manifest.json"), []byte("{}"), 0o644))
+
+	valid := Config{Port: 8080, DataDir: tmpDir, Extensions: []string{"ublock"}}
+	require.NoError(t, valid.Validate())
+
+	invalid := Config{Port: 8080, DataDir: tmpDir, Extensions: []string{"missing"}}
+	require.Error(t, invalid.Validate())
 }

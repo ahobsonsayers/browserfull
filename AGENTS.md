@@ -60,6 +60,8 @@ The agent-browser dashboard binds to `127.0.0.1` only, so it cannot be exposed d
 - **Endpoint structure**:
   - `GET /connect` — connect to a randomly-named session's CDP WebSocket (launches if not running); name generated via haikunator (e.g. `wispy-dust-1337`)
   - `GET /connect/{sessionName}` — connect to named session's CDP WebSocket (launches if not running)
+  - Both take `?headed=true|false`, overriding `BROWSERFULL_DEFAULT_HEADED` for the launch. The mode is a launch option: a running session keeps the one it started with.
+  - Both take `?extensions=name1,name2`, added to `BROWSERFULL_DEFAULT_EXTENSIONS`. Names resolve only against `<DataDir>/extensions/` (see Configuration), so a client cannot point the browser at an arbitrary path. Extensions are also launch-time only.
   - `GET /sessions` — list active session names
   - `DELETE /sessions/{sessionName}` — close a session
   - `GET /health` — health check
@@ -75,6 +77,7 @@ The agent-browser dashboard binds to `127.0.0.1` only, so it cannot be exposed d
 - `ListSessions` parses `data.sessions` array from CLI JSON output using `gjson`.
 - Uses `gjson` (not `encoding/json`) for all JSON parsing — check `gjson.Result.Type` / `IsArray()` rather than unmarshaling into structs.
 - Errors from `runCmd` are non-zero exit codes; `success` field in JSON output is not checked (redundant with exit code).
+- `Launch(sessionName string, opts LaunchOptions)` appends `--headed` and one `--extension <path>` per entry in `opts.Extensions` to the `open` command. Extensions must be already-installed extension folders with a `manifest.json`.
 - `StartDashboard`/`StopDashboard` (`dashboard.go`) wrap `agent-browser dashboard start` / `dashboard stop`. The dashboard always uses agent-browser's default port (4848) on loopback; it is not configurable because it is reverse-proxied through browserfull at `/`.
 
 ### `internal/proxy`
@@ -89,6 +92,8 @@ The agent-browser dashboard binds to `127.0.0.1` only, so it cannot be exposed d
 - **Docs**: https://agent-browser.dev/ (Commands: https://agent-browser.dev/commands, Configuration: https://agent-browser.dev/configuration, Sessions: https://agent-browser.dev/sessions)
 - **Docker image** — The Dockerfile bundles `agent-browser` (installed via npm builder stage) and clearcote (open-source stealth Chromium from `clearcotelabs/clearcote-browser`). Both are **pinned** by top-of-file ARGs — `ARG AGENT_BROWSER_VERSION=`, `ARG CLEARCOTE_VERSION=` (a `teamflatearth/clearcote` image tag) — which the `update.yaml` workflow bumps daily; never use `latest` or a floating tag for either. `BROWSERFULL_BROWSER_EXECUTABLE_PATH=/opt/clearcote/chrome` wires agent-browser to use the bundled clearcote as its default browser. No host `agent-browser` or Chrome install is needed when running via Docker. Override `BROWSERFULL_BROWSER_EXECUTABLE_PATH` to use a different browser.
 
+  The image runs headed on Xvfb (`docker-entrypoint.sh`, `BROWSERFULL_DEFAULT_HEADED=true`, `DISPLAY=:99`) because headless Chrome is itself a detection signal, and sets `AGENT_BROWSER_ARGS=--test-type` to drop the infobar that `--no-sandbox` raises in a headed window.
+
   Clearcote was chosen over a closed stealth Chromium because the open build is BSD-3 with every patch public, needs no licence key or licence server, has no cap on concurrent browsers (so one container serves many sessions), and keeps shipping current Chromium releases. The browser is copied out of the pinned Clearcote Docker image, so each release is one version to bump.
 
 ## Configuration
@@ -99,6 +104,8 @@ Loaded from environment variables via `go-envconfig` (`internal/config/config.go
 - `BROWSERFULL_DATA_DIR` — default `$HOME/.browserfull`; sets `AGENT_BROWSER_SOCKET_DIR` (session metadata files) and `AGENT_BROWSER_CONFIG` (`<DataDir>/config.json`). See https://agent-browser.dev/configuration.
 - `BROWSERFULL_ALLOWED_ORIGINS` — comma-separated list of allowed WebSocket origin hostnames; `*` disables origin checking.
 - `BROWSERFULL_BROWSER_EXECUTABLE_PATH` — optional; sets `AGENT_BROWSER_EXECUTABLE_PATH` to point agent-browser at a custom browser binary (e.g. the bundled clearcote in Docker).
+- `BROWSERFULL_DEFAULT_HEADED` — default `false`; launches sessions with a visible window (`--headed`). Needs `DISPLAY`; without one the launch falls back to headless with a log line. The Docker image sets it `true` and runs Xvfb on `:99`.
+- `BROWSERFULL_DEFAULT_EXTENSIONS` — comma-separated extension folder names under `<DataDir>/extensions/`, loaded into every session. `Validate()` resolves each name at startup, so a typo stops the server instead of breaking connects.
 - `go-envconfig` runs default values through `os.Expand`, so `$HOME` in the `default=` tag works.
 
 ## Skills
